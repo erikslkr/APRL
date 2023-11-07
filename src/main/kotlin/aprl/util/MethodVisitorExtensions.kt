@@ -31,24 +31,30 @@ fun List<Int>.nextOrMissing(): Int {
 private fun MethodVisitor.visitExpressionTreeNode(node: AprlEvaluable, localVariables: LocalVariables) {
     when (node) {
         is AprlOperator -> {
-            val opcode = when (node) {
-                AprlBitwiseOperator.AND -> IAND
-                AprlBitwiseOperator.OR -> IOR
-                AprlBitwiseOperator.XOR -> IXOR
-                AprlBitwiseOperator.SHL -> ISHL
-                AprlBitwiseOperator.SHR -> ISHR
-                AprlBitwiseOperator.USHR -> IUSHR
-                AprlAdditiveOperator.PLUS -> IADD
-                AprlAdditiveOperator.MINUS -> ISUB
-                AprlMultiplicativeOperator.MULTIPLY -> IMUL
-                AprlMultiplicativeOperator.DIVIDE -> IDIV
-                AprlMultiplicativeOperator.MODULO -> IREM
+            val functionName = when (node) {
+                AprlBitwiseOperator.AND -> "__and__"
+                AprlBitwiseOperator.OR -> "__or__"
+                AprlBitwiseOperator.XOR -> "__xor__"
+                AprlBitwiseOperator.SHL -> "__shl__"
+                AprlBitwiseOperator.SHR -> "__shr__"
+                AprlBitwiseOperator.USHR -> "__ushr__"
+                AprlAdditiveOperator.PLUS -> "__plus__"
+                AprlAdditiveOperator.MINUS -> "__minus__"
+                AprlMultiplicativeOperator.MULTIPLY -> "__multiply__"
+                AprlMultiplicativeOperator.DIVIDE -> "__divide__"
+                AprlMultiplicativeOperator.FLOORDIV -> "__floordiv__"
+                AprlMultiplicativeOperator.MODULO -> "__rem__"
+                AprlExponentialOperator.DOUBLE_ASTERISK -> "__pow__"
                 else -> return
             }
-            visitInsn(opcode)
+            val returnType = "Laprl/lang/Int;" // TODO: find return type, perhaps using reflection
+            visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Int", functionName, "(Laprl/lang/Int;)$returnType", false)
         }
         is AprlIntegerLiteral -> {
-            visitLdcInsn(node.value)
+            visitTypeInsn(NEW, "aprl/lang/Int")
+            visitInsn(DUP)
+            visitLdcInsn(node.value.toLong())
+            visitMethodInsn(INVOKESPECIAL, "aprl/lang/Int", "<init>", "(J)V", false)
         }
         is AprlIdentifier -> {
             val localVariableIndex = localVariables["$node"]?.first
@@ -80,7 +86,7 @@ fun MethodVisitor.visitAprlVariableDeclaration(declaration: AprlVariableDeclarat
     expressionTree.traverse(BinaryTree.TraversalOrder.POSTORDER) {
         visitExpressionTreeNode(it, localVariables)
     }
-    visitVarInsn(ISTORE, index)
+    visitVarInsn(ASTORE, index)
 }
 
 fun MethodVisitor.visitAprlVariableAssignment(assignment: AprlVariableAssignment, localVariables: LocalVariables) {

@@ -52,6 +52,7 @@ multiplicativeExpression
 multiplicativeOperator
     : ASTERISK
     | SLASH
+    | BACKSLASH
     | PERCENT;
 
 exponentialExpression

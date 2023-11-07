@@ -19,9 +19,9 @@ public class AprlParser extends Parser {
 	public static final int
 		WS=1, VAR=2, VAL=3, EQUAL=4, LPAREN=5, RPAREN=6, LSQUARE=7, RSQUARE=8, 
 		LCURLY=9, RCURLY=10, PERIOD=11, COMMA=12, PLUS=13, MINUS=14, ASTERISK=15, 
-		DOUBLE_ASTERISK=16, SLASH=17, PERCENT=18, AND=19, OR=20, XOR=21, SHL=22, 
-		SHR=23, USHR=24, NL=25, IntegerLiteral=26, FloatLiteral=27, CharLiteral=28, 
-		StringLiteral=29, Identifier=30;
+		DOUBLE_ASTERISK=16, SLASH=17, BACKSLASH=18, PERCENT=19, AND=20, OR=21, 
+		XOR=22, SHL=23, SHR=24, USHR=25, NL=26, IntegerLiteral=27, FloatLiteral=28, 
+		CharLiteral=29, StringLiteral=30, Identifier=31;
 	public static final int
 		RULE_aprlFile = 0, RULE_statement = 1, RULE_variableDeclaration = 2, RULE_variableClassifier = 3, 
 		RULE_variableAssignment = 4, RULE_expression = 5, RULE_parenthesizedExpression = 6, 
@@ -43,8 +43,8 @@ public class AprlParser extends Parser {
 	private static String[] makeLiteralNames() {
 		return new String[] {
 			null, null, "'var'", "'val'", "'='", "'('", "')'", "'['", "']'", "'{'", 
-			"'}'", "'.'", "','", "'+'", "'-'", "'*'", "'**'", "'/'", "'%'", "'&'", 
-			"'|'", "'^'", "'<<'", "'>>'", "'>>>'"
+			"'}'", "'.'", "','", "'+'", "'-'", "'*'", "'**'", "'/'", "'\\'", "'%'", 
+			"'&'", "'|'", "'^'", "'<<'", "'>>'", "'>>>'"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
@@ -52,8 +52,9 @@ public class AprlParser extends Parser {
 		return new String[] {
 			null, "WS", "VAR", "VAL", "EQUAL", "LPAREN", "RPAREN", "LSQUARE", "RSQUARE", 
 			"LCURLY", "RCURLY", "PERIOD", "COMMA", "PLUS", "MINUS", "ASTERISK", "DOUBLE_ASTERISK", 
-			"SLASH", "PERCENT", "AND", "OR", "XOR", "SHL", "SHR", "USHR", "NL", "IntegerLiteral", 
-			"FloatLiteral", "CharLiteral", "StringLiteral", "Identifier"
+			"SLASH", "BACKSLASH", "PERCENT", "AND", "OR", "XOR", "SHL", "SHR", "USHR", 
+			"NL", "IntegerLiteral", "FloatLiteral", "CharLiteral", "StringLiteral", 
+			"Identifier"
 		};
 	}
 	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
@@ -657,7 +658,7 @@ public class AprlParser extends Parser {
 			{
 			setState(87);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 33030144L) != 0)) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 66060288L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -909,6 +910,7 @@ public class AprlParser extends Parser {
 	public static class MultiplicativeOperatorContext extends ParserRuleContext {
 		public TerminalNode ASTERISK() { return getToken(AprlParser.ASTERISK, 0); }
 		public TerminalNode SLASH() { return getToken(AprlParser.SLASH, 0); }
+		public TerminalNode BACKSLASH() { return getToken(AprlParser.BACKSLASH, 0); }
 		public TerminalNode PERCENT() { return getToken(AprlParser.PERCENT, 0); }
 		public MultiplicativeOperatorContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -938,7 +940,7 @@ public class AprlParser extends Parser {
 			{
 			setState(115);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 425984L) != 0)) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 950272L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -1350,7 +1352,7 @@ public class AprlParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\u0004\u0001\u001e\u009f\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001"+
+		"\u0004\u0001\u001f\u009f\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001"+
 		"\u0002\u0002\u0007\u0002\u0002\u0003\u0007\u0003\u0002\u0004\u0007\u0004"+
 		"\u0002\u0005\u0007\u0005\u0002\u0006\u0007\u0006\u0002\u0007\u0007\u0007"+
 		"\u0002\b\u0007\b\u0002\t\u0007\t\u0002\n\u0007\n\u0002\u000b\u0007\u000b"+
@@ -1375,8 +1377,8 @@ public class AprlParser extends Parser {
 		"\u0010\u0005\u0010\u0098\b\u0010\n\u0010\f\u0010\u009b\t\u0010\u0001\u0011"+
 		"\u0001\u0011\u0001\u0011\u0000\u0004\u000e\u0012\u0016\u001a\u0012\u0000"+
 		"\u0002\u0004\u0006\b\n\f\u000e\u0010\u0012\u0014\u0016\u0018\u001a\u001c"+
-		"\u001e \"\u0000\u0004\u0001\u0000\u0002\u0003\u0001\u0000\u0013\u0018"+
-		"\u0001\u0000\r\u000e\u0002\u0000\u000f\u000f\u0011\u0012\u009a\u0000\'"+
+		"\u001e \"\u0000\u0004\u0001\u0000\u0002\u0003\u0001\u0000\u0014\u0019"+
+		"\u0001\u0000\r\u000e\u0002\u0000\u000f\u000f\u0011\u0013\u009a\u0000\'"+
 		"\u0001\u0000\u0000\u0000\u00028\u0001\u0000\u0000\u0000\u0004:\u0001\u0000"+
 		"\u0000\u0000\u0006=\u0001\u0000\u0000\u0000\b?\u0001\u0000\u0000\u0000"+
 		"\nE\u0001\u0000\u0000\u0000\fG\u0001\u0000\u0000\u0000\u000eK\u0001\u0000"+
@@ -1384,10 +1386,10 @@ public class AprlParser extends Parser {
 		"\u0014e\u0001\u0000\u0000\u0000\u0016g\u0001\u0000\u0000\u0000\u0018s"+
 		"\u0001\u0000\u0000\u0000\u001au\u0001\u0000\u0000\u0000\u001c\u0081\u0001"+
 		"\u0000\u0000\u0000\u001e\u0086\u0001\u0000\u0000\u0000 \u0088\u0001\u0000"+
-		"\u0000\u0000\"\u009c\u0001\u0000\u0000\u0000$&\u0005\u0019\u0000\u0000"+
+		"\u0000\u0000\"\u009c\u0001\u0000\u0000\u0000$&\u0005\u001a\u0000\u0000"+
 		"%$\u0001\u0000\u0000\u0000&)\u0001\u0000\u0000\u0000\'%\u0001\u0000\u0000"+
 		"\u0000\'(\u0001\u0000\u0000\u0000(*\u0001\u0000\u0000\u0000)\'\u0001\u0000"+
-		"\u0000\u0000*3\u0003\u0002\u0001\u0000+-\u0005\u0019\u0000\u0000,+\u0001"+
+		"\u0000\u0000*3\u0003\u0002\u0001\u0000+-\u0005\u001a\u0000\u0000,+\u0001"+
 		"\u0000\u0000\u0000-.\u0001\u0000\u0000\u0000.,\u0001\u0000\u0000\u0000"+
 		"./\u0001\u0000\u0000\u0000/0\u0001\u0000\u0000\u000002\u0003\u0002\u0001"+
 		"\u00001,\u0001\u0000\u0000\u000025\u0001\u0000\u0000\u000031\u0001\u0000"+
@@ -1424,21 +1426,21 @@ public class AprlParser extends Parser {
 		"~\u007f\u0001\u0000\u0000\u0000\u007f\u001b\u0001\u0000\u0000\u0000\u0080"+
 		"~\u0001\u0000\u0000\u0000\u0081\u0082\u0005\u0010\u0000\u0000\u0082\u001d"+
 		"\u0001\u0000\u0000\u0000\u0083\u0087\u0003\f\u0006\u0000\u0084\u0087\u0003"+
-		" \u0010\u0000\u0085\u0087\u0005\u001a\u0000\u0000\u0086\u0083\u0001\u0000"+
+		" \u0010\u0000\u0085\u0087\u0005\u001b\u0000\u0000\u0086\u0083\u0001\u0000"+
 		"\u0000\u0000\u0086\u0084\u0001\u0000\u0000\u0000\u0086\u0085\u0001\u0000"+
 		"\u0000\u0000\u0087\u001f\u0001\u0000\u0000\u0000\u0088\u0099\u0003\"\u0011"+
-		"\u0000\u0089\u008b\u0005\u0019\u0000\u0000\u008a\u0089\u0001\u0000\u0000"+
+		"\u0000\u0089\u008b\u0005\u001a\u0000\u0000\u008a\u0089\u0001\u0000\u0000"+
 		"\u0000\u008b\u008e\u0001\u0000\u0000\u0000\u008c\u008a\u0001\u0000\u0000"+
 		"\u0000\u008c\u008d\u0001\u0000\u0000\u0000\u008d\u008f\u0001\u0000\u0000"+
 		"\u0000\u008e\u008c\u0001\u0000\u0000\u0000\u008f\u0093\u0005\u000b\u0000"+
-		"\u0000\u0090\u0092\u0005\u0019\u0000\u0000\u0091\u0090\u0001\u0000\u0000"+
+		"\u0000\u0090\u0092\u0005\u001a\u0000\u0000\u0091\u0090\u0001\u0000\u0000"+
 		"\u0000\u0092\u0095\u0001\u0000\u0000\u0000\u0093\u0091\u0001\u0000\u0000"+
 		"\u0000\u0093\u0094\u0001\u0000\u0000\u0000\u0094\u0096\u0001\u0000\u0000"+
 		"\u0000\u0095\u0093\u0001\u0000\u0000\u0000\u0096\u0098\u0003\"\u0011\u0000"+
 		"\u0097\u008c\u0001\u0000\u0000\u0000\u0098\u009b\u0001\u0000\u0000\u0000"+
 		"\u0099\u0097\u0001\u0000\u0000\u0000\u0099\u009a\u0001\u0000\u0000\u0000"+
 		"\u009a!\u0001\u0000\u0000\u0000\u009b\u0099\u0001\u0000\u0000\u0000\u009c"+
-		"\u009d\u0005\u001e\u0000\u0000\u009d#\u0001\u0000\u0000\u0000\r\'.38E"+
+		"\u009d\u0005\u001f\u0000\u0000\u009d#\u0001\u0000\u0000\u0000\r\'.38E"+
 		"Tbp~\u0086\u008c\u0093\u0099";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());

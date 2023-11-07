@@ -4,12 +4,12 @@ import java.io.FileOutputStream
 
 fun main() {
     val input = """
-        val b = 1 << 9
-        var i = b * 3
+        val a = 5
+        val b = a \ 5
     """.trimIndent()
     val inputFileName = "Output"
     val settings = AprlCompilerSettings(
-        printIR = true,
+        printIR = false,
         inspectAST = false
     )
     val irCompiler = AprlIRCompiler(settings)

@@ -22,6 +22,7 @@ MINUS: '-';
 ASTERISK: '*';
 DOUBLE_ASTERISK: '**';
 SLASH: '/';
+BACKSLASH: '\\';
 PERCENT: '%';
 
 AND: '&';

@@ -260,7 +260,7 @@ class AprlJvmBytecodeCompiler(private val settings: AprlCompilerSettings) : Aprl
             mainMethod.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(I)V", false)
         }
         mainMethod.visitInsn(RETURN)
-        mainMethod.visitMaxs(2, localVariables.size)
+        mainMethod.visitMaxs(3, localVariables.size + 4)
         mainMethod.visitEnd()
         classWriter.visitEnd()
         return classWriter.toByteArray()

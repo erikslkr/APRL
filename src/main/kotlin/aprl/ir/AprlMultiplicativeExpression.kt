@@ -23,12 +23,14 @@ data class AprlMultiplicativeExpression(
 enum class AprlMultiplicativeOperator : AprlOperator {
     MULTIPLY,
     DIVIDE,
+    FLOORDIV,
     MODULO;
     
     override fun apply(lhs: Int, rhs: Int): Int {
         return when (this) {
             MULTIPLY -> lhs * rhs
-            DIVIDE -> lhs / rhs
+            DIVIDE -> lhs / rhs // TODO: replace with floating point division
+            FLOORDIV -> lhs / rhs
             MODULO -> lhs % rhs
         }
     }
@@ -39,6 +41,8 @@ enum class AprlMultiplicativeOperator : AprlOperator {
                 MULTIPLY
             } else if (ctx.SLASH() != null) {
                 DIVIDE
+            } else if (ctx.BACKSLASH() != null) {
+                FLOORDIV
             } else if (ctx.PERCENT() != null) {
                 MODULO
             } else {
