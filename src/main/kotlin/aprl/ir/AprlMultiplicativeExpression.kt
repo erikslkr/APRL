@@ -20,18 +20,30 @@ data class AprlMultiplicativeExpression(
     }
 }
 
-enum class AprlMultiplicativeOperator : AprlOperator {
-    MULTIPLY,
-    DIVIDE,
-    FLOORDIV,
-    MODULO;
+enum class AprlMultiplicativeOperator(
+    override val functionName: String,
+    override val operatorSymbol: String
+) : AprlOperator {
+    MULTIPLY("__multiply__", "*"),
+    DIVIDE("__divide__", "/"),
+    FLOORDIV("__floordiv__", "\\"),
+    MODULO("__mod__", "%");
     
-    override fun apply(lhs: Int, rhs: Int): Int {
-        return when (this) {
-            MULTIPLY -> lhs * rhs
-            DIVIDE -> lhs / rhs // TODO: replace with floating point division
-            FLOORDIV -> lhs / rhs
-            MODULO -> lhs % rhs
+    override fun applyOrNull(lhs: Number, rhs: Number): Number {
+        return if (lhs is Double || rhs is Double) {
+            when (this) {
+                MULTIPLY -> lhs.toDouble() * rhs.toDouble()
+                DIVIDE -> lhs.toDouble() / rhs.toDouble()
+                FLOORDIV -> (lhs.toDouble() / rhs.toDouble()).toInt()
+                MODULO -> lhs.toDouble() % rhs.toDouble()
+            }
+        } else { // lhs: Int, rhs: Int
+            when (this) {
+                MULTIPLY -> lhs.toInt() * rhs.toInt()
+                DIVIDE -> lhs.toDouble() / rhs.toDouble()
+                FLOORDIV -> lhs.toInt() / rhs.toInt()
+                MODULO -> lhs.toInt() % rhs.toInt()
+            }
         }
     }
     

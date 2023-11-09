@@ -85,7 +85,8 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
     override fun enterAtomicExpression(ctx: AprlParser.AtomicExpressionContext) {
         // Initialize atomic expression, convert integer literal to integer value if present
         val integerValue = ctx.IntegerLiteral()?.text?.toInt()?.let { AprlIntegerLiteral(it) }
-        currentAtomicExpressions.push(AprlAtomicExpression(null, null, integerValue))
+        val floatValue = ctx.FloatLiteral()?.text?.toDouble()?.let { AprlFloatLiteral(it) }
+        currentAtomicExpressions.push(AprlAtomicExpression(null, null, integerValue, floatValue))
     }
     
     override fun enterIdentifier(ctx: AprlParser.IdentifierContext) {
@@ -260,7 +261,7 @@ class AprlJvmBytecodeCompiler(private val settings: AprlCompilerSettings) : Aprl
             mainMethod.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(I)V", false)
         }
         mainMethod.visitInsn(RETURN)
-        mainMethod.visitMaxs(3, localVariables.size + 4)
+        mainMethod.visitMaxs(3, localVariables.size)
         mainMethod.visitEnd()
         classWriter.visitEnd()
         return classWriter.toByteArray()

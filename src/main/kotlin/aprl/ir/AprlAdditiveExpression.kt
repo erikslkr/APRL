@@ -20,14 +20,23 @@ data class AprlAdditiveExpression(
     }
 }
 
-enum class AprlAdditiveOperator : AprlOperator {
-    PLUS,
-    MINUS;
+enum class AprlAdditiveOperator(
+    override val functionName: String,
+    override val operatorSymbol: String
+) : AprlOperator {
+    PLUS("__plus__", "+"),
+    MINUS("__minus__", "-");
     
-    override fun apply(lhs: Int, rhs: Int): Int {
+    override fun applyOrNull(lhs: Number, rhs: Number): Number {
+        if (lhs is Double || rhs is Double) {
+            return when (this) {
+                PLUS -> lhs.toDouble() + rhs.toDouble()
+                MINUS -> lhs.toDouble() - rhs.toDouble()
+            }
+        }
         return when (this) {
-            PLUS -> lhs + rhs
-            MINUS -> lhs - rhs
+            PLUS -> lhs.toInt() + rhs.toInt()
+            MINUS -> lhs.toInt() - rhs.toInt()
         }
     }
     

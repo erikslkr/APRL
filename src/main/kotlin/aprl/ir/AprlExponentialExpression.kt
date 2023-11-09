@@ -21,12 +21,21 @@ data class AprlExponentialExpression(
     }
 }
 
-enum class AprlExponentialOperator : AprlOperator {
-    DOUBLE_ASTERISK;
+enum class AprlExponentialOperator(
+    override val functionName: String,
+    override val operatorSymbol: String
+) : AprlOperator {
+    DOUBLE_ASTERISK("__pow__", "**");
     
-    override fun apply(lhs: Int, rhs: Int): Int {
-        return when (this) {
-            DOUBLE_ASTERISK -> lhs.toDouble().pow(rhs).toInt()
+    override fun applyOrNull(lhs: Number, rhs: Number): Number {
+        return if (lhs is Double || rhs is Double) {
+            when (this) {
+                DOUBLE_ASTERISK -> lhs.toDouble().pow(rhs.toDouble())
+            }
+        } else {
+            when (this) {
+                DOUBLE_ASTERISK -> lhs.toDouble().pow(rhs.toDouble()).toInt()
+            }
         }
     }
     

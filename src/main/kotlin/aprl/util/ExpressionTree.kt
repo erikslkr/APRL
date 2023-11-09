@@ -9,6 +9,7 @@ class ExpressionTree(
     secondChild: ExpressionTree? = null,
     content: AprlEvaluable?
 ) : BinaryTree<AprlEvaluable>(firstChild, secondChild, content) {
+    
     private fun cauterize(content: AprlEvaluable?) {
         firstChild = null
         secondChild = null
@@ -24,16 +25,26 @@ class ExpressionTree(
             val expressionString = "<EXPRESSION>" // TODO: get *ORIGINAL* expression as string
             val lhsString = "<LHS>" // TODO: get *ORIGINAL* lhs as string
             val rhsString = "<RHS>" // TODO: get *ORIGINAL* rhs as string
-            if (rhs is AprlIntegerLiteral) {
-                if (lhs is AprlIntegerLiteral) {
+            if (rhs is AprlLiteral<*>) {
+                if (lhs is AprlLiteral<*>) {
                     // lhs: constant, rhs: constant
-                    cauterize(AprlIntegerLiteral((content as AprlOperator).apply(lhs.value, rhs.value)))
-                    WARNING("Constant expression '$expressionString' can be evaluated to '${(content as AprlIntegerLiteral).value}'")
+                    when (val evaluated = (content as AprlOperator).applyOrNull(lhs.value, rhs.value)) {
+                        is Int -> {
+                            cauterize(AprlIntegerLiteral(evaluated.toInt()))
+                        }
+                        is Double -> {
+                            cauterize(AprlFloatLiteral(evaluated.toDouble()))
+                        }
+                        else -> {
+                            return
+                        }
+                    }
+                    WARNING("Constant expression '$expressionString' can be evaluated to '${(content as AprlLiteral<*>).value}'")
                 } else {
                     // lhs: non-constant, rhs: constant
                     when (content) {
                         is AprlBitwiseOperator -> {
-                            if (rhs.value == 0) {
+                            if (rhs.value == 0 && lhs is AprlIntegerLiteral) {
                                 when (content) {
                                     AprlBitwiseOperator.AND -> {
                                         cauterize(AprlIntegerLiteral(0))
@@ -47,34 +58,44 @@ class ExpressionTree(
                             }
                         }
                         is AprlAdditiveOperator -> {
-                            if (rhs.value == 0) {
+                            if (rhs.value == 0 || rhs.value == 0.0) {
                                 cauterize(lhs)
                                 WARNING("Result of '$expressionString' is always '$lhsString'")
                             }
                         }
                         is AprlMultiplicativeOperator -> {
-                            if (rhs.value == 0) {
+                            if (rhs.value == 0 || rhs.value == 0.0) {
                                 when (content) {
                                     AprlMultiplicativeOperator.MODULO, AprlMultiplicativeOperator.DIVIDE -> {
                                         ERROR("Division by zero")
                                     }
                                     AprlMultiplicativeOperator.MULTIPLY -> {
-                                        cauterize(AprlIntegerLiteral(0))
-                                        WARNING("Result of '$expressionString' is always '0'")
+                                        if (rhs.value == 0.0) {
+                                            cauterize(AprlFloatLiteral(0.0))
+                                            WARNING("Result of '$expressionString' is always '0.0'")
+                                        } else {
+                                            cauterize(AprlIntegerLiteral(0))
+                                            WARNING("Result of '$expressionString' is always '0'")
+                                        }
                                     }
                                 }
-                            } else if (rhs.value == 1) {
+                            } else if (rhs.value == 1 || rhs.value == 1.0) {
                                 when (content) {
                                     AprlMultiplicativeOperator.MODULO -> {
-                                        cauterize(AprlIntegerLiteral(0))
-                                        WARNING("Result of '$expressionString' is always '0'")
+                                        if (rhs.value == 1.0) {
+                                            cauterize(AprlFloatLiteral(0.0))
+                                            WARNING("Result of '$expressionString' is always '0.0'")
+                                        } else {
+                                            cauterize(AprlIntegerLiteral(0))
+                                            WARNING("Result of '$expressionString' is always '0'")
+                                        }
                                     }
                                     AprlMultiplicativeOperator.MULTIPLY, AprlMultiplicativeOperator.DIVIDE -> {
                                         cauterize(lhs)
                                         WARNING("Result of '$expressionString' is always '$lhsString'")
                                     }
                                 }
-                            } else if (rhs.value > 0 && rhs.value and (rhs.value - 1) == 0) { // check if rhs.value is a power of 2
+                            } else if (rhs is AprlIntegerLiteral && rhs.value > 0 && rhs.value and (rhs.value - 1) == 0) { // check if rhs.value is a power of 2
                                 var rhsValue = rhs.value
                                 var exp = 0
                                 while (rhsValue and 1 == 0) {
@@ -97,14 +118,14 @@ class ExpressionTree(
                             }
                         }
                         is AprlExponentialOperator -> {
-                            if (rhs.value == 0) {
+                            if (rhs.value == 0 || rhs.value == 0.0) {
                                 cauterize(AprlIntegerLiteral(1))
                                 WARNING("Result of '$expressionString' is always '1'")
                             }
                         }
                     }
                 }
-            } else if (lhs is AprlIntegerLiteral) {
+            } else if (lhs is AprlLiteral<*>) {
                 // lhs: constant, rhs: non-constant
                 when (content) {
                     is AprlBitwiseOperator -> {
@@ -122,13 +143,13 @@ class ExpressionTree(
                         }
                     }
                     is AprlAdditiveOperator -> {
-                        if (lhs.value == 0) {
+                        if (lhs.value == 0 || lhs.value == 0.0) {
                             cauterize(rhs)
                             WARNING("Result of '$expressionString' is always '$rhsString'")
                         }
                     }
                     is AprlMultiplicativeOperator -> {
-                        if (lhs.value == 0) {
+                        if (lhs.value == 0 || lhs.value == 0.0) {
                             cauterize(AprlIntegerLiteral(0))
                             WARNING("Result of '$expressionString' is always '0'")
                         } else if (lhs.value == 1) {
@@ -138,7 +159,7 @@ class ExpressionTree(
                                     WARNING("Result of '$expressionString' is always '$rhsString'")
                                 }
                             }
-                        } else if (content == AprlMultiplicativeOperator.MULTIPLY && lhs.value > 0 && lhs.value and (lhs.value - 1) == 0) { // check if lhs.value is a power of 2
+                        } else if (content == AprlMultiplicativeOperator.MULTIPLY && lhs is AprlIntegerLiteral && lhs.value > 0 && lhs.value and (lhs.value - 1) == 0) { // check if lhs.value is a power of 2
                             var lhsValue = lhs.value
                             var exp = 0
                             while (lhsValue and 1 == 0) {
@@ -178,4 +199,5 @@ class ExpressionTree(
             return ExpressionTree(null, null, content)
         }
     }
+    
 }

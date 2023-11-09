@@ -5,7 +5,8 @@ import aprl.util.ExpressionTree
 data class AprlAtomicExpression(
     var parenthesizedExpression: AprlExpression?,
     var identifier: AprlIdentifier?,
-    val integerLiteral: AprlIntegerLiteral?
+    val integerLiteral: AprlIntegerLiteral?,
+    val floatLiteral: AprlFloatLiteral?
 ): AprlEvaluable {
     override fun toString(): String {
         if (parenthesizedExpression != null) {
@@ -14,15 +15,13 @@ data class AprlAtomicExpression(
             return "$identifier"
         } else if (integerLiteral != null) {
             return "$integerLiteral"
+        } else if (floatLiteral != null) {
+            return "$floatLiteral"
         }
         return "<INVALID_ATOMIC_EXPRESSION>"
     }
     
     fun toTree(): ExpressionTree {
-        return parenthesizedExpression?.toTree() ?: ExpressionTree.leaf(identifier ?: integerLiteral!!)
+        return parenthesizedExpression?.toTree() ?: ExpressionTree.leaf(identifier ?: integerLiteral ?: floatLiteral!!)
     }
-    
-    fun isParenthesizedExpression() = parenthesizedExpression != null
-    fun isIdentifier() = identifier != null
-    fun isIntegerLiteral() = integerLiteral != null
 }

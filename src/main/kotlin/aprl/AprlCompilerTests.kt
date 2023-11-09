@@ -4,8 +4,7 @@ import java.io.FileOutputStream
 
 fun main() {
     val input = """
-        val a = 5
-        val b = a \ 5
+        val a = 0 & 1
     """.trimIndent()
     val inputFileName = "Output"
     val settings = AprlCompilerSettings(

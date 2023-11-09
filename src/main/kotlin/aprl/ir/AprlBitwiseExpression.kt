@@ -2,6 +2,7 @@ package aprl.ir
 
 import aprl.grammar.AprlParser
 import aprl.util.ExpressionTree
+import java.lang.IllegalArgumentException
 
 data class AprlBitwiseExpression(
     var bitwiseExpression: AprlBitwiseExpression?,
@@ -20,15 +21,21 @@ data class AprlBitwiseExpression(
     }
 }
 
-enum class AprlBitwiseOperator : AprlOperator {
-    AND,
-    OR,
-    XOR,
-    SHL,
-    SHR,
-    USHR;
+enum class AprlBitwiseOperator(
+    override val functionName: String,
+    override val operatorSymbol: String
+) : AprlOperator {
+    AND("__and__", "&"),
+    OR("__or__", "|"),
+    XOR("__xor__", "^"),
+    SHL("__shl__", "<<"),
+    SHR("__shr__", ">>"),
+    USHR("__ushr__", ">>>");
     
-    override fun apply(lhs: Int, rhs: Int): Int {
+    override fun applyOrNull(lhs: Number, rhs: Number): Int? {
+        if (lhs !is Int || rhs !is Int) {
+            return null
+        }
         return when (this) {
             AND -> lhs and rhs
             OR -> lhs or rhs
