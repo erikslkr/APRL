@@ -3,7 +3,7 @@ parser grammar AprlParser;
 options { tokenVocab = AprlLexer; }
 
 aprlFile
-    : NL* statement (NL+ statement)*;
+    : NL* statement (NL+ statement)* NL* EOF;
 
 statement
     : variableDeclaration

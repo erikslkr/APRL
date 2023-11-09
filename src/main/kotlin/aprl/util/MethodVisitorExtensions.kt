@@ -1,6 +1,6 @@
 package aprl.util
 
-import aprl.ERROR
+import aprl.compiler.ERROR
 import aprl.ir.*
 import aprl.lang.OperatorFunction
 import org.objectweb.asm.MethodVisitor

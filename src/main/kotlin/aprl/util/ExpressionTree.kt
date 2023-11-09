@@ -1,7 +1,7 @@
 package aprl.util
 
-import aprl.ERROR
-import aprl.WARNING
+import aprl.compiler.ERROR
+import aprl.compiler.WARNING
 import aprl.ir.*
 
 class ExpressionTree(

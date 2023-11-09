@@ -1,28 +1,14 @@
-package aprl
+package aprl.compiler
 
 import aprl.ir.*
 import aprl.grammar.*
-import aprl.util.LocalVariables
-import aprl.util.emptyLocalVariables
-import aprl.util.visitAprlVariableAssignment
-import aprl.util.visitAprlVariableDeclaration
 import org.antlr.v4.runtime.*
 import org.antlr.v4.gui.Trees
 import org.antlr.v4.runtime.tree.ParseTreeWalker
-import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Opcodes.*
 import java.util.*
 
-// VARIABLE
-// - name: String
-// - index: Int
-
-private interface AprlCompiler<Source, Target> {
-    fun compile(source: Source): Target
-}
-
 class AprlIRCompiler(private val settings: AprlCompilerSettings)
-    : AprlCompiler<String, AprlIR>, AprlParserBaseListener() {
+    : AprlParserBaseListener() {
     
     private val ir = AprlIR()
     
@@ -202,7 +188,7 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
         }
     }
     
-    override fun compile(source: String): AprlIR {
+    fun compile(source: String): AprlIR {
         val lexer = AprlLexer(CharStreams.fromString(source))
         val tokens = CommonTokenStream(lexer)
         val parser = AprlParser(tokens)
@@ -217,54 +203,6 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
             println(ir)
         }
         return ir
-    }
-    
-}
-
-class AprlJvmBytecodeCompiler(private val settings: AprlCompilerSettings) : AprlCompiler<AprlIR, ByteArray> {
-    
-    private lateinit var source: AprlIR
-    
-    override fun compile(source: AprlIR): ByteArray {
-        this.source = source
-        val classWriter = ClassWriter(0)
-        classWriter.visit(
-            V1_8,
-            ACC_PUBLIC + ACC_FINAL,
-            source.name!!,
-            null,
-            "java/lang/Object",
-            emptyArray()
-        )
-        val mainMethod = classWriter.visitMethod(
-            ACC_PUBLIC + ACC_STATIC + ACC_FINAL,
-            "main",
-            "([Ljava/lang/String;)V",
-            null,
-            null
-        )
-        mainMethod.visitCode()
-        val localVariables = emptyLocalVariables()
-        for (statement in source.statements) {
-            when (statement) {
-                is AprlVariableDeclaration -> {
-                    mainMethod.visitAprlVariableDeclaration(statement, localVariables)
-                }
-                is AprlVariableAssignment -> {
-                    mainMethod.visitAprlVariableAssignment(statement, localVariables)
-                }
-            }
-        }
-        for ((index, _) in localVariables.values) {
-            mainMethod.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;")
-            mainMethod.visitVarInsn(ILOAD, index)
-            mainMethod.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(I)V", false)
-        }
-        mainMethod.visitInsn(RETURN)
-        mainMethod.visitMaxs(3, localVariables.size)
-        mainMethod.visitEnd()
-        classWriter.visitEnd()
-        return classWriter.toByteArray()
     }
     
 }

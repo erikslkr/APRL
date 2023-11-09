@@ -1,4 +1,4 @@
-package aprl
+package aprl.compiler
 
 typealias Position = Pair<Int, Int>
 
