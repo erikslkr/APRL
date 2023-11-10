@@ -65,9 +65,14 @@ exponentialOperator
 atomicExpression
     : parenthesizedExpression
     | identifier
-    | booleanLiteral
+    | literal;
+
+literal
+    : booleanLiteral
     | IntegerLiteral
-    | FloatLiteral;
+    | FloatLiteral
+    | StringLiteral
+    | CharLiteral;
 
 booleanLiteral
     : TRUE

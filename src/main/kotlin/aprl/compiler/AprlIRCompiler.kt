@@ -67,13 +67,10 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
         }
         currentExponentialExpressions.push(AprlExponentialExpression(null, exponentialOperator, null))
     }
-    
+
     override fun enterAtomicExpression(ctx: AprlParser.AtomicExpressionContext) {
-        // Initialize atomic expression, convert integer literal to integer value if present
-        val integerValue = ctx.IntegerLiteral()?.text?.toInt()?.let { AprlIntegerLiteral(it) }
-        val floatValue = ctx.FloatLiteral()?.text?.toDouble()?.let { AprlFloatLiteral(it) }
-        val booleanValue = ctx.booleanLiteral()?.text?.toBooleanStrictOrNull()?.let { AprlBooleanLiteral(it) }
-        currentAtomicExpressions.push(AprlAtomicExpression(null, null, integerValue, floatValue, booleanValue))
+        // Initialize atomic expression
+        currentAtomicExpressions.push(AprlAtomicExpression(null, null, null))
     }
     
     override fun enterIdentifier(ctx: AprlParser.IdentifierContext) {
@@ -187,6 +184,15 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
             // simple identifier inside of variable assignment
             (currentStatements.peek() as? AprlVariableAssignment)?.identifier = ctx.text
         }
+    }
+
+    override fun exitLiteral(ctx: AprlParser.LiteralContext) {
+        val literal = ctx.IntegerLiteral()?.text?.toInt()?.let { AprlIntegerLiteral(it) }
+            ?: ctx.FloatLiteral()?.text?.toDouble()?.let { AprlFloatLiteral(it) }
+            ?: ctx.booleanLiteral()?.text?.toBooleanStrictOrNull()?.let { AprlBooleanLiteral(it) }
+            ?: ctx.StringLiteral()?.text?.let { it.substring(1, it.length - 1) }?.let { AprlStringLiteral(it) }
+            ?: ctx.CharLiteral()?.text?.get(1)?.let { AprlCharLiteral(it) }
+        currentAtomicExpressions.peek().literal = literal
     }
     
     fun compile(source: String): AprlIR {

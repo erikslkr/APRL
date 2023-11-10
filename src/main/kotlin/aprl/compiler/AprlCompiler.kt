@@ -10,6 +10,7 @@ object AprlCompiler {
     }
     
     const val VERSION = 0.1
+    const val CMD_NAME = "aprl"
     
     private val settings = AprlCompilerSettings()
     
@@ -109,7 +110,7 @@ object AprlCompiler {
     
     private fun help() {
         println("""
-            Usage: aprl [options] <source file>
+            Usage: $CMD_NAME [options] <source file>
             
             Available options:
                 -h -help --h --help
