@@ -72,7 +72,8 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
         // Initialize atomic expression, convert integer literal to integer value if present
         val integerValue = ctx.IntegerLiteral()?.text?.toInt()?.let { AprlIntegerLiteral(it) }
         val floatValue = ctx.FloatLiteral()?.text?.toDouble()?.let { AprlFloatLiteral(it) }
-        currentAtomicExpressions.push(AprlAtomicExpression(null, null, integerValue, floatValue))
+        val booleanValue = ctx.booleanLiteral()?.text?.toBooleanStrictOrNull()?.let { AprlBooleanLiteral(it) }
+        currentAtomicExpressions.push(AprlAtomicExpression(null, null, integerValue, floatValue, booleanValue))
     }
     
     override fun enterIdentifier(ctx: AprlParser.IdentifierContext) {

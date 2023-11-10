@@ -74,7 +74,7 @@ object AprlCompiler {
             println("No such file: '${inFile.absolutePath}'")
             return
         }
-        if (!inFile.endsWith(".aprl")) {
+        if (!inFile.absolutePath.endsWith(".aprl")) {
             println("Source file is not an APRL file: '${inFile.absolutePath}' (file extension should be .aprl)")
             return
         }

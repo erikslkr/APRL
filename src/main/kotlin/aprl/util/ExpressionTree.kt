@@ -28,7 +28,7 @@ class ExpressionTree(
             if (rhs is AprlLiteral<*>) {
                 if (lhs is AprlLiteral<*>) {
                     // lhs: constant, rhs: constant
-                    when (val evaluated = (content as AprlOperator).applyOrNull(lhs.value, rhs.value)) {
+                    /*when (val evaluated = (content as AprlOperator).applyOrNull(lhs.value, rhs.value)) {
                         is Int -> {
                             cauterize(AprlIntegerLiteral(evaluated.toInt()))
                         }
@@ -38,7 +38,7 @@ class ExpressionTree(
                         else -> {
                             return
                         }
-                    }
+                    }*/
                     WARNING("Constant expression '$expressionString' can be evaluated to '${(content as AprlLiteral<*>).value}'")
                 } else {
                     // lhs: non-constant, rhs: constant

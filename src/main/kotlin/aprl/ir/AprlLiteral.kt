@@ -1,6 +1,6 @@
 package aprl.ir
 
-interface AprlLiteral<T: Number> {
+interface AprlLiteral<T> : AprlEvaluable {
     val value: T
-    val internalType: Class<out aprl.lang.Number>
+    val internalType: Class<*>
 }

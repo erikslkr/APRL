@@ -6,7 +6,8 @@ data class AprlAtomicExpression(
     var parenthesizedExpression: AprlExpression?,
     var identifier: AprlIdentifier?,
     val integerLiteral: AprlIntegerLiteral?,
-    val floatLiteral: AprlFloatLiteral?
+    val floatLiteral: AprlFloatLiteral?,
+    val booleanLiteral: AprlBooleanLiteral?
 ): AprlEvaluable {
     override fun toString(): String {
         if (parenthesizedExpression != null) {
@@ -17,11 +18,13 @@ data class AprlAtomicExpression(
             return "$integerLiteral"
         } else if (floatLiteral != null) {
             return "$floatLiteral"
+        } else if (booleanLiteral != null) {
+            return "$booleanLiteral"
         }
         return "<INVALID_ATOMIC_EXPRESSION>"
     }
     
     fun toTree(): ExpressionTree {
-        return parenthesizedExpression?.toTree() ?: ExpressionTree.leaf(identifier ?: integerLiteral ?: floatLiteral!!)
+        return parenthesizedExpression?.toTree() ?: ExpressionTree.leaf(identifier ?: integerLiteral ?: floatLiteral ?: booleanLiteral!!)
     }
 }

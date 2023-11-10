@@ -1,9 +1,9 @@
 package aprl.lang
 
 data class Float(
-    override val value: kotlin.Double
+    override val value: Double
 ) : Number() {
 
-
+    // TODO: operators
 
 }

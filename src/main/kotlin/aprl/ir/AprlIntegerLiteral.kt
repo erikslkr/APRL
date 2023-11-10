@@ -1,12 +1,12 @@
 package aprl.ir
 
-import aprl.lang.Number
+import aprl.lang.Int
 
 data class AprlIntegerLiteral(
-    override val value: Int // TODO: change Int to Long
-) : AprlEvaluable, AprlLiteral<Int> {
+    override val value: kotlin.Int // TODO: change Int to Long
+) : AprlLiteral<kotlin.Int> {
     
-    override val internalType: Class<out Number> = aprl.lang.Int::class.java
+    override val internalType: Class<Int> = Int::class.java
     
     override fun toString(): String {
         return "$value"

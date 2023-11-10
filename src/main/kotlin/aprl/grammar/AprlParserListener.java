@@ -168,6 +168,16 @@ public interface AprlParserListener extends ParseTreeListener {
 	 */
 	void exitAtomicExpression(AprlParser.AtomicExpressionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link AprlParser#booleanLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void enterBooleanLiteral(AprlParser.BooleanLiteralContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#booleanLiteral}.
+	 * @param ctx the parse tree
+	 */
+	void exitBooleanLiteral(AprlParser.BooleanLiteralContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link AprlParser#identifier}.
 	 * @param ctx the parse tree
 	 */

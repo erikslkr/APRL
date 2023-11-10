@@ -55,26 +55,19 @@ private fun MethodVisitor.visitExpressionTreeNode(node: AprlEvaluable, localVari
             // rightType must be made available for next expression
             rightType = null
         }
-        is AprlIntegerLiteral -> {
-            visitTypeInsn(NEW, "aprl/lang/Int")
-            visitInsn(DUP)
-            visitLdcInsn(node.value.toLong())
-            visitMethodInsn(INVOKESPECIAL, "aprl/lang/Int", "<init>", "(J)V", false)
-            if (leftType == null) {
-                leftType = aprl.lang.Int::class.java
-            } else if (rightType == null) {
-                rightType = aprl.lang.Int::class.java
-            }
-        }
-        is AprlFloatLiteral -> {
-            visitTypeInsn(NEW, "aprl/lang/Float")
+        is AprlLiteral<*> -> {
+            // Name of the wrapper class, e.g. `aprl/lang/Int`
+            val internalName = Type.getType(node.internalType).internalName
+            visitTypeInsn(NEW, internalName)
             visitInsn(DUP)
             visitLdcInsn(node.value)
-            visitMethodInsn(INVOKESPECIAL, "aprl/lang/Float", "<init>", "(D)V", false)
+            // Name of the represented type stored in the wrapper, usually primitive types
+            val representedType = Type.getType(node.value!!.javaClass).descriptor
+            visitMethodInsn(INVOKESPECIAL, internalName, "<init>", "($representedType)V", false)
             if (leftType == null) {
-                leftType = aprl.lang.Float::class.java
+                leftType = node.internalType
             } else if (rightType == null) {
-                rightType = aprl.lang.Float::class.java
+                rightType = node.internalType
             }
         }
         is AprlIdentifier -> {
@@ -87,7 +80,7 @@ private fun MethodVisitor.visitExpressionTreeNode(node: AprlEvaluable, localVari
                     rightType = localVariable.type
                 }
             } else {
-                // TODO: $it could still refer to ...instance variable ...static field (perhaps some other case)
+                // TODO: $it could still refer to ...instance variable ...static field ...etc
                 // If not => ERROR(Unresolved reference '$it')
             }
         }
@@ -98,7 +91,7 @@ fun MethodVisitor.visitAprlVariableDeclaration(declaration: AprlVariableDeclarat
     val assignment = declaration.variableAssignment!!
     val expressionTree = assignment.expression!!.toTree()
     expressionTree.optimize()
-    // TODO [IMPORTANT]: $assignment.identifier could also refer to instance variables, global variables, etc.
+    // TODO: $assignment.identifier could also refer to instance variables, global variables, etc.
     expressionTree.traverse(BinaryTree.TraversalOrder.POSTORDER) {
         visitExpressionTreeNode(it, localVariables)
     }
@@ -113,22 +106,30 @@ fun MethodVisitor.visitAprlVariableDeclaration(declaration: AprlVariableDeclarat
         localVariables[assignment.identifier!!] = LocalVariable(index, isMutable, variableType)
     }
     visitVarInsn(ASTORE, index)
+    leftType = rightType
+    rightType = null
 }
 
 fun MethodVisitor.visitAprlVariableAssignment(assignment: AprlVariableAssignment, localVariables: LocalVariables) {
     val expressionTree = assignment.expression!!.toTree()
     expressionTree.optimize()
-    // TODO [IMPORTANT]: $assignment.identifier could also refer to instance variables, global variables, etc.
+    // TODO: $assignment.identifier could also refer to instance variables, global variables, etc.
     if (assignment.identifier!! !in localVariables.keys) {
         ERROR("Unresolved reference '${assignment.identifier}'")
     } else {
-        if (!localVariables[assignment.identifier]!!.isMutable) {
+        val localVariable = localVariables[assignment.identifier]!!
+        if (!localVariable.isMutable) {
             // Variable cannot be reassigned
             ERROR("'${assignment.identifier}' is immutable")
         }
         expressionTree.traverse(BinaryTree.TraversalOrder.POSTORDER) {
             visitExpressionTreeNode(it, localVariables)
         }
-        visitVarInsn(ASTORE, localVariables[assignment.identifier]!!.index)
+        if (leftType?.let { localVariable.type.isAssignableFrom(it) } != true) {
+            ERROR("Type mismatch: Inferred type is '${leftType!!.simpleName}' but '${localVariable.type.simpleName}' was expected")
+        }
+        visitVarInsn(ASTORE, localVariable.index)
+        leftType = rightType
+        rightType = null
     }
 }

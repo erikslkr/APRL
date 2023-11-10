@@ -34,6 +34,9 @@ USHR: '>>>';
 
 NL: '\r'? '\n';
 
+TRUE: 'true';
+FALSE: 'false';
+
 IntegerLiteral: [-]? [0-9]+;
 FloatLiteral: [-]? [0-9]* '.' [0-9]+;
 CharLiteral: '\'' . '\'';

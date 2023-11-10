@@ -65,8 +65,13 @@ exponentialOperator
 atomicExpression
     : parenthesizedExpression
     | identifier
+    | booleanLiteral
     | IntegerLiteral
     | FloatLiteral;
+
+booleanLiteral
+    : TRUE
+    | FALSE;
 
 identifier
     : simpleIdentifier (NL* PERIOD NL* simpleIdentifier)*;

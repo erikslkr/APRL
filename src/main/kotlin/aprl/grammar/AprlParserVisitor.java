@@ -107,6 +107,12 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAtomicExpression(AprlParser.AtomicExpressionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link AprlParser#booleanLiteral}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBooleanLiteral(AprlParser.BooleanLiteralContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link AprlParser#identifier}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
