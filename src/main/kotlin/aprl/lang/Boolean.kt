@@ -1,10 +1,8 @@
 package aprl.lang
 
-import kotlin.Boolean
-
 data class Boolean(
-    val value: Boolean
-) {
+    override val value: kotlin.Boolean
+) : Wrapper<kotlin.Boolean>() {
     
     // TODO: operators?
     

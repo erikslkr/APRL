@@ -1,9 +1,17 @@
 package aprl.ir
 
+import aprl.lang.Wrapper
+
 interface AprlOperator : AprlEvaluable {
     val functionName: String
     val operatorSymbol: String
     
-    // TODO: Change parameters and return type to `Any` (operators should now be defined on all types, not only numbers anymore)
-    fun applyOrNull(lhs: Number, rhs: Number): Number?
+    fun applyOrNull(lhs: Any, rhs: Any): Any? {
+        return try {
+            val method = lhs.javaClass.getMethod(functionName, rhs.javaClass)
+            (method.invoke(lhs, rhs) as? Wrapper<*>)?.value
+        } catch (ex: NoSuchMethodException) {
+            null
+        }
+    }
 }

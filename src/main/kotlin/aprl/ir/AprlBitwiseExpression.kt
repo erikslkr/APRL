@@ -2,7 +2,6 @@ package aprl.ir
 
 import aprl.grammar.AprlParser
 import aprl.util.ExpressionTree
-import java.lang.IllegalArgumentException
 
 data class AprlBitwiseExpression(
     var bitwiseExpression: AprlBitwiseExpression?,
@@ -31,20 +30,6 @@ enum class AprlBitwiseOperator(
     SHL("__shl__", "<<"),
     SHR("__shr__", ">>"),
     USHR("__ushr__", ">>>");
-    
-    override fun applyOrNull(lhs: Number, rhs: Number): Int? {
-        if (lhs !is Int || rhs !is Int) {
-            return null
-        }
-        return when (this) {
-            AND -> lhs and rhs
-            OR -> lhs or rhs
-            XOR -> lhs xor rhs
-            SHL -> lhs shl rhs
-            SHR -> lhs shr rhs
-            USHR -> lhs ushr rhs
-        }
-    }
     
     companion object {
         fun fromNode(ctx: AprlParser.BitwiseOperatorContext): AprlBitwiseOperator {

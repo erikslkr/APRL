@@ -6,7 +6,7 @@ import kotlin.math.pow
 
 data class Int(
     override val value: Long
-) : Number() {
+) : Wrapper<Long>() {
     
     @Verbatim
     @OperatorFunction
@@ -60,6 +60,12 @@ data class Int(
     @OperatorFunction
     fun __multiply__(other: Float): Float {
         return Float(value * other.value)
+    }
+    
+    @Verbatim
+    @OperatorFunction
+    fun __multiply__(other: String): String {
+        return String(other.value.repeat(value.toInt()))
     }
     
     @Verbatim

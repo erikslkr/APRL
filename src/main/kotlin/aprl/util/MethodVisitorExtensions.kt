@@ -16,7 +16,7 @@ import org.objectweb.asm.Type
  */
 fun List<Int>.nextOrMissing(): Int {
     // Find the maximum element in the list
-    val max = maxOrNull() ?: return 1 // Empty list => first missing element is 1
+    val max = maxOrNull() ?: return 0 // Empty list => first missing element is 1
     
     for (i in 1..<max) {
         // Check for missing elements
@@ -63,7 +63,14 @@ private fun MethodVisitor.visitExpressionTreeNode(node: AprlEvaluable, localVari
             visitLdcInsn(node.value)
             // Name of the represented type stored in the wrapper, usually primitive types
             val representedType = Type.getType(node.value!!.javaClass).descriptor
-            visitMethodInsn(INVOKESPECIAL, internalName, "<init>", "($representedType)V", false)
+            val primitiveType = when (representedType) {
+                "Ljava/lang/Boolean;" -> "Z"
+                "Ljava/lang/Long;" -> "J"
+                "Ljava/lang/Double;" -> "D"
+                "Ljava/lang/Character;" -> "C"
+                else -> null
+            }
+            visitMethodInsn(INVOKESPECIAL, internalName, "<init>", "(${primitiveType ?: representedType})V", false)
             if (leftType == null) {
                 leftType = node.internalType
             } else if (rightType == null) {

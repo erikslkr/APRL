@@ -3,8 +3,8 @@ package aprl.ir
 import aprl.lang.Int
 
 data class AprlIntegerLiteral(
-    override val value: kotlin.Int // TODO: change Int to Long
-) : AprlLiteral<kotlin.Int> {
+    override val value: Long
+) : AprlLiteral<Long> {
     
     override val internalType: Class<Int> = Int::class.java
     

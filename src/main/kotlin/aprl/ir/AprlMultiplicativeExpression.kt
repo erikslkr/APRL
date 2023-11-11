@@ -29,24 +29,6 @@ enum class AprlMultiplicativeOperator(
     FLOORDIV("__floordiv__", "\\"),
     MODULO("__mod__", "%");
     
-    override fun applyOrNull(lhs: Number, rhs: Number): Number {
-        return if (lhs is Double || rhs is Double) {
-            when (this) {
-                MULTIPLY -> lhs.toDouble() * rhs.toDouble()
-                DIVIDE -> lhs.toDouble() / rhs.toDouble()
-                FLOORDIV -> (lhs.toDouble() / rhs.toDouble()).toInt()
-                MODULO -> lhs.toDouble() % rhs.toDouble()
-            }
-        } else { // lhs: Int, rhs: Int
-            when (this) {
-                MULTIPLY -> lhs.toInt() * rhs.toInt()
-                DIVIDE -> lhs.toDouble() / rhs.toDouble()
-                FLOORDIV -> lhs.toInt() / rhs.toInt()
-                MODULO -> lhs.toInt() % rhs.toInt()
-            }
-        }
-    }
-    
     companion object {
         fun fromNode(ctx: AprlParser.MultiplicativeOperatorContext): AprlMultiplicativeOperator {
             return if (ctx.ASTERISK() != null) {

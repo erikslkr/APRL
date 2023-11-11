@@ -3,6 +3,7 @@ package aprl.util
 import aprl.compiler.ERROR
 import aprl.compiler.WARNING
 import aprl.ir.*
+import aprl.lang.Wrapper
 
 class ExpressionTree(
     firstChild: ExpressionTree? = null,
@@ -28,17 +29,16 @@ class ExpressionTree(
             if (rhs is AprlLiteral<*>) {
                 if (lhs is AprlLiteral<*>) {
                     // lhs: constant, rhs: constant
-                    /*when (val evaluated = (content as AprlOperator).applyOrNull(lhs.value, rhs.value)) {
-                        is Int -> {
-                            cauterize(AprlIntegerLiteral(evaluated.toInt()))
-                        }
-                        is Double -> {
-                            cauterize(AprlFloatLiteral(evaluated.toDouble()))
-                        }
-                        else -> {
-                            return
-                        }
-                    }*/
+                    val lhsWrapped = Wrapper.wrap(lhs.value)
+                    val rhsWrapped = Wrapper.wrap(rhs.value)
+                    when (val evaluated = (content as AprlOperator).applyOrNull(lhsWrapped, rhsWrapped)) {
+                        is Boolean -> cauterize(AprlBooleanLiteral(evaluated))
+                        is Long -> cauterize(AprlIntegerLiteral(evaluated))
+                        is Double -> cauterize(AprlFloatLiteral(evaluated))
+                        is Char -> cauterize(AprlCharLiteral(evaluated))
+                        is String -> cauterize(AprlStringLiteral(evaluated))
+                        else -> return
+                    }
                     WARNING("Constant expression '$expressionString' can be evaluated to '${(content as AprlLiteral<*>).value}'")
                 } else {
                     // lhs: non-constant, rhs: constant
@@ -95,10 +95,10 @@ class ExpressionTree(
                                         WARNING("Result of '$expressionString' is always '$lhsString'")
                                     }
                                 }
-                            } else if (rhs is AprlIntegerLiteral && rhs.value > 0 && rhs.value and (rhs.value - 1) == 0) { // check if rhs.value is a power of 2
+                            } else if (rhs is AprlIntegerLiteral && rhs.value > 0 && rhs.value and (rhs.value - 1) == 0L) { // check if rhs.value is a power of 2
                                 var rhsValue = rhs.value
-                                var exp = 0
-                                while (rhsValue and 1 == 0) {
+                                var exp = 0L
+                                while (rhsValue and 1 == 0L) {
                                     // shift the value as far right as possible and count the steps in order to determine exp
                                     rhsValue = rhsValue shr 1
                                     exp++
@@ -159,10 +159,10 @@ class ExpressionTree(
                                     WARNING("Result of '$expressionString' is always '$rhsString'")
                                 }
                             }
-                        } else if (content == AprlMultiplicativeOperator.MULTIPLY && lhs is AprlIntegerLiteral && lhs.value > 0 && lhs.value and (lhs.value - 1) == 0) { // check if lhs.value is a power of 2
+                        } else if (content == AprlMultiplicativeOperator.MULTIPLY && lhs is AprlIntegerLiteral && lhs.value > 0 && lhs.value and (lhs.value - 1) == 0L) { // check if lhs.value is a power of 2
                             var lhsValue = lhs.value
-                            var exp = 0
-                            while (lhsValue and 1 == 0) {
+                            var exp = 0L
+                            while (lhsValue and 1 == 0L) {
                                 // shift the value as far right as possible and count the steps in order to determine exp
                                 lhsValue = lhsValue shr 1
                                 exp++

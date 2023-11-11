@@ -2,7 +2,6 @@ package aprl.ir
 
 import aprl.grammar.AprlParser
 import aprl.util.ExpressionTree
-import kotlin.math.pow
 
 data class AprlExponentialExpression(
     var exponentialExpression: AprlExponentialExpression?,
@@ -26,18 +25,6 @@ enum class AprlExponentialOperator(
     override val operatorSymbol: String
 ) : AprlOperator {
     DOUBLE_ASTERISK("__pow__", "**");
-    
-    override fun applyOrNull(lhs: Number, rhs: Number): Number {
-        return if (lhs is Double || rhs is Double) {
-            when (this) {
-                DOUBLE_ASTERISK -> lhs.toDouble().pow(rhs.toDouble())
-            }
-        } else {
-            when (this) {
-                DOUBLE_ASTERISK -> lhs.toDouble().pow(rhs.toDouble()).toInt()
-            }
-        }
-    }
     
     companion object {
         fun fromNode(ctx: AprlParser.ExponentialOperatorContext): AprlExponentialOperator {

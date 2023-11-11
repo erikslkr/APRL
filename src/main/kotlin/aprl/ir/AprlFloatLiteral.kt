@@ -1,7 +1,6 @@
 package aprl.ir
 
 import aprl.lang.Float
-import aprl.lang.Number
 
 data class AprlFloatLiteral(
     override val value: Double

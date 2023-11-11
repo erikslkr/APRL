@@ -187,7 +187,7 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
     }
 
     override fun exitLiteral(ctx: AprlParser.LiteralContext) {
-        val literal = ctx.IntegerLiteral()?.text?.toInt()?.let { AprlIntegerLiteral(it) }
+        val literal = ctx.IntegerLiteral()?.text?.toLong()?.let { AprlIntegerLiteral(it) }
             ?: ctx.FloatLiteral()?.text?.toDouble()?.let { AprlFloatLiteral(it) }
             ?: ctx.booleanLiteral()?.text?.toBooleanStrictOrNull()?.let { AprlBooleanLiteral(it) }
             ?: ctx.StringLiteral()?.text?.let { it.substring(1, it.length - 1) }?.let { AprlStringLiteral(it) }

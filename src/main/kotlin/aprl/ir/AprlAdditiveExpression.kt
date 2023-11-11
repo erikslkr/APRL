@@ -27,19 +27,6 @@ enum class AprlAdditiveOperator(
     PLUS("__plus__", "+"),
     MINUS("__minus__", "-");
     
-    override fun applyOrNull(lhs: Number, rhs: Number): Number {
-        if (lhs is Double || rhs is Double) {
-            return when (this) {
-                PLUS -> lhs.toDouble() + rhs.toDouble()
-                MINUS -> lhs.toDouble() - rhs.toDouble()
-            }
-        }
-        return when (this) {
-            PLUS -> lhs.toInt() + rhs.toInt()
-            MINUS -> lhs.toInt() - rhs.toInt()
-        }
-    }
-    
     companion object {
         fun fromNode(ctx: AprlParser.AdditiveOperatorContext): AprlAdditiveOperator {
             return if (ctx.PLUS() != null) {
