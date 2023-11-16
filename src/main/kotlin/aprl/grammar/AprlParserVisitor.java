@@ -1,4 +1,4 @@
-// Generated from /Users/erik/Desktop/IntelliJ/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
+// Generated from /home/erik/Documents/IdeaProjects/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
 package aprl.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -118,6 +118,12 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitBooleanLiteral(AprlParser.BooleanLiteralContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#type}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitType(AprlParser.TypeContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AprlParser#identifier}.
 	 * @param ctx the parse tree

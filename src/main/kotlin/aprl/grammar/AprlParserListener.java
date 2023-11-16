@@ -1,4 +1,4 @@
-// Generated from /Users/erik/Desktop/IntelliJ/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
+// Generated from /home/erik/Documents/IdeaProjects/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
 package aprl.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -187,6 +187,16 @@ public interface AprlParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitBooleanLiteral(AprlParser.BooleanLiteralContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#type}.
+	 * @param ctx the parse tree
+	 */
+	void enterType(AprlParser.TypeContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#type}.
+	 * @param ctx the parse tree
+	 */
+	void exitType(AprlParser.TypeContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AprlParser#identifier}.
 	 * @param ctx the parse tree

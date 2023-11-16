@@ -78,6 +78,7 @@ private fun MethodVisitor.visitExpressionTreeNode(node: AprlEvaluable, localVari
             }
         }
         is AprlIdentifier -> {
+            // TODO: check if variable has been initialized
             val localVariable = localVariables["$node"]
             if (localVariable != null) {
                 visitVarInsn(ALOAD, localVariable.index)
@@ -95,22 +96,35 @@ private fun MethodVisitor.visitExpressionTreeNode(node: AprlEvaluable, localVari
 }
 
 fun MethodVisitor.visitAprlVariableDeclaration(declaration: AprlVariableDeclaration, localVariables: LocalVariables) {
-    val assignment = declaration.variableAssignment!!
-    val expressionTree = assignment.expression!!.toTree()
-    expressionTree.optimize()
-    // TODO: $assignment.identifier could also refer to instance variables, global variables, etc.
-    expressionTree.traverse(BinaryTree.TraversalOrder.POSTORDER) {
-        visitExpressionTreeNode(it, localVariables)
+    val variableType = declaration.typeAnnotation?.javaType ?: leftType ?: Any::class.java
+    val expressionTree = declaration.expression?.toTree()
+    if (expressionTree != null) {
+        expressionTree.optimize()
+        // TODO: $assignment.identifier could also refer to instance variables, global variables, etc.
+        expressionTree.traverse(BinaryTree.TraversalOrder.POSTORDER) {
+            visitExpressionTreeNode(it, localVariables)
+        }
+    } else {
+        if (variableType.defaultValue == null) {
+            visitInsn(ACONST_NULL)
+        } else {
+            visitLdcInsn(variableType.defaultValue)
+        }
     }
     val index: Int
-    if (assignment.identifier!! in localVariables.keys) {
-        index = localVariables[assignment.identifier]!!.index
-        ERROR("Redeclaration of '${assignment.identifier}'")
+    if (declaration.identifier!! in localVariables.keys) {
+        index = localVariables[declaration.identifier]!!.index
+        ERROR("Redeclaration of '${declaration.identifier}'")
     } else {
         index = localVariables.values.map { it.index }.nextOrMissing()
         val isMutable = declaration.variableClassifier != VariableClassifier.VAL
-        val variableType = leftType ?: Any::class.java
-        localVariables[assignment.identifier!!] = LocalVariable(index, isMutable, variableType)
+        localVariables[declaration.identifier!!] = LocalVariable(index, isMutable, variableType)
+    }
+    if (leftType!! != variableType) {
+        val desiredType = Type.getType(variableType)
+        val providedType = Type.getType(leftType)
+        val transformerFunctionName = "to${variableType.simpleName}"
+        visitMethodInsn(INVOKEVIRTUAL, providedType.internalName, transformerFunctionName, "()${desiredType.descriptor}", false)
     }
     visitVarInsn(ASTORE, index)
     leftType = rightType

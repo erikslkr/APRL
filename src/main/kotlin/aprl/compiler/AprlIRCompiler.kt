@@ -20,12 +20,14 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
     private val currentMultiplicativeExpressions = Stack<AprlMultiplicativeExpression>()
     private val currentExponentialExpressions = Stack<AprlExponentialExpression>()
     private val currentAtomicExpressions = Stack<AprlAtomicExpression>()
-    
+
+    private val currentTypeReferences = Stack<AprlType>()
+
     private val currentIdentifiers = Stack<AprlIdentifier>()
     
     override fun enterVariableDeclaration(ctx: AprlParser.VariableDeclarationContext) {
         val variableClassifier = VariableClassifier.fromNode(ctx.variableClassifier())
-        currentStatements.push(AprlVariableDeclaration(variableClassifier, null))
+        currentStatements.push(AprlVariableDeclaration(variableClassifier, null, null, null))
     }
     
     override fun enterVariableAssignment(ctx: AprlParser.VariableAssignmentContext) {
@@ -72,7 +74,11 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
         // Initialize atomic expression
         currentAtomicExpressions.push(AprlAtomicExpression(null, null, null))
     }
-    
+
+    override fun enterType(ctx: AprlParser.TypeContext) {
+        currentTypeReferences.push(AprlType(null))
+    }
+
     override fun enterIdentifier(ctx: AprlParser.IdentifierContext) {
         currentIdentifiers.push(AprlIdentifier())
     }
@@ -84,13 +90,7 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
     override fun exitVariableAssignment(ctx: AprlParser.VariableAssignmentContext) {
         // Take assignment off stack, it should be initialized and handled by now
         val variableAssignment = currentStatements.pop() as AprlVariableAssignment
-        if (currentStatements.isNotEmpty()) {
-            // Statement stack not empty => assignment is part of declaration
-            (currentStatements.peek() as AprlVariableDeclaration).variableAssignment = variableAssignment
-        } else {
-            // Empty statement stack => assignment stands on its own
-            ir.statements.add(variableAssignment)
-        }
+        ir.statements.add(variableAssignment)
     }
     
     override fun exitExpression(ctx: AprlParser.ExpressionContext) {
@@ -110,7 +110,16 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
         } else {
             // Empty expressions stack => expression must be part of variable assignment
             if (currentStatements.isNotEmpty()) {
-                (currentStatements.peek() as AprlVariableAssignment).expression = expression
+                currentStatements.peek().also {
+                    when (it) {
+                        is AprlVariableAssignment -> {
+                            it.expression = expression
+                        }
+                        is AprlVariableDeclaration -> {
+                            it.expression = expression
+                        }
+                    }
+                }
             }
         }
     }
@@ -167,12 +176,28 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
             currentExponentialExpressions.peek().atomicExpression = atomicExpression
         }
     }
-    
+
+    override fun exitType(ctx: AprlParser.TypeContext) {
+        val typeReference = currentTypeReferences.pop()
+        if (currentStatements.isNotEmpty()) {
+            currentStatements.peek().also {
+                when (it) {
+                    is AprlVariableDeclaration -> {
+                        it.typeAnnotation = typeReference
+                    }
+                }
+            }
+        }
+    }
+
     override fun exitIdentifier(ctx: AprlParser.IdentifierContext) {
         val identifier = currentIdentifiers.pop()
         if (currentAtomicExpressions.isNotEmpty()) {
             // Identifier as atomic expression
             currentAtomicExpressions.peek().identifier = identifier
+        } else if (currentTypeReferences.isNotEmpty()) {
+            // Identifier as type reference
+            currentTypeReferences.peek().identifier = identifier
         }
     }
     
@@ -181,8 +206,18 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
             // Identifier stack not empty => simple identifier is part of parent identifier
             currentIdentifiers.peek().identifiers.add(ctx.text)
         } else if (currentStatements.isNotEmpty()) {
-            // simple identifier inside of variable assignment
-            (currentStatements.peek() as? AprlVariableAssignment)?.identifier = ctx.text
+            currentStatements.peek().also {
+                when (it) {
+                    is AprlVariableAssignment -> {
+                        // simple identifier as variable name inside assignment
+                        it.identifier = ctx.text
+                    }
+                    is AprlVariableDeclaration -> {
+                        // simple identifier as variable name inside declaration
+                        it.identifier = ctx.text
+                    }
+                }
+            }
         }
     }
 

@@ -4,10 +4,18 @@ import aprl.grammar.AprlParser
 
 data class AprlVariableDeclaration(
     val variableClassifier: VariableClassifier,
-    var variableAssignment: AprlVariableAssignment?
+    var identifier: String?,
+    var typeAnnotation: AprlType?,
+    var expression: AprlExpression?
 ) : AprlStatement {
     override fun toString(): String {
-        return "$variableClassifier $variableAssignment"
+        return if (typeAnnotation == null) {
+            "$variableClassifier $identifier = $expression"
+        } else if (expression == null) {
+            "$variableClassifier $identifier: $typeAnnotation"
+        } else {
+            "$variableClassifier $identifier: $typeAnnotation = $expression"
+        }
     }
 }
 

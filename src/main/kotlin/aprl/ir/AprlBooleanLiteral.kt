@@ -9,7 +9,7 @@ class AprlBooleanLiteral(
     override val internalType: Class<*> = Boolean::class.java
 
     override fun toString(): String {
-        return "$value"
+        return value.toString()
     }
 
 }

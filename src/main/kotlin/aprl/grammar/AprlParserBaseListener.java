@@ -1,4 +1,4 @@
-// Generated from /Users/erik/Desktop/IntelliJ/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
+// Generated from /home/erik/Documents/IdeaProjects/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
 package aprl.grammar;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -228,6 +228,18 @@ public class AprlParserBaseListener implements AprlParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitBooleanLiteral(AprlParser.BooleanLiteralContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterType(AprlParser.TypeContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitType(AprlParser.TypeContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

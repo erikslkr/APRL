@@ -16,6 +16,7 @@ RCURLY: '}';
 
 PERIOD: '.';
 COMMA: ',';
+COLON: ':';
 
 PLUS: '+';
 MINUS: '-';

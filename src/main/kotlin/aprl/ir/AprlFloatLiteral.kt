@@ -9,7 +9,7 @@ data class AprlFloatLiteral(
     override val internalType: Class<Float> = Float::class.java
     
     override fun toString(): String {
-        return "$value"
+        return value.toString()
     }
     
 }

@@ -9,7 +9,7 @@ data class AprlIntegerLiteral(
     override val internalType: Class<Int> = Int::class.java
     
     override fun toString(): String {
-        return "$value"
+        return value.toString()
     }
     
 }

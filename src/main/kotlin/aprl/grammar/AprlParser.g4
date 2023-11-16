@@ -10,7 +10,8 @@ statement
     | variableAssignment;
 
 variableDeclaration
-    : variableClassifier variableAssignment;
+    : variableClassifier simpleIdentifier COLON type (EQUAL expression)?
+    | variableClassifier simpleIdentifier EQUAL expression;
 
 variableClassifier
     : (VAL | VAR);
@@ -77,6 +78,9 @@ literal
 booleanLiteral
     : TRUE
     | FALSE;
+
+type
+    : identifier;
 
 identifier
     : simpleIdentifier (NL* PERIOD NL* simpleIdentifier)*;
