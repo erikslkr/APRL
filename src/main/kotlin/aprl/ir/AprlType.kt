@@ -14,4 +14,8 @@ data class AprlType(
             else -> Any::class.java
         }
 
+    override fun toString(): String {
+        return identifier.toString()
+    }
+
 }
