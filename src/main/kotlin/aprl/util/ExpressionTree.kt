@@ -1,201 +1,179 @@
 package aprl.util
 
+import aprl.compiler.AprlCompiler
 import aprl.compiler.ERROR
-import aprl.compiler.WARNING
+import aprl.compiler.PositionRange
+import aprl.grammar.AprlParser
 import aprl.ir.*
+import aprl.ir.operators.*
 import aprl.lang.Wrapper
 
 class ExpressionTree(
     firstChild: ExpressionTree? = null,
     secondChild: ExpressionTree? = null,
-    content: AprlEvaluable?
-) : BinaryTree<AprlEvaluable>(firstChild, secondChild, content) {
+    content: AprlNode<*>?
+) : BinaryTree<AprlNode<*>>(firstChild, secondChild, content) {
     
-    private fun cauterize(content: AprlEvaluable?) {
+    val positionRange: PositionRange
+        get() = toList().let { it.first().context.positionRange.first to it.last().context.positionRange.second }
+    
+    private fun cauterize(literal: AprlLiteral<*>) {
+        content = literal
         firstChild = null
         secondChild = null
-        this.content = content
+    }
+    
+    private fun cauterize(expression: ExpressionTree) {
+        content = expression.content
+        expression.let {
+            firstChild = it.firstChild
+            secondChild = it.secondChild
+        }
+    }
+    
+    fun deepCopy(): ExpressionTree {
+        return ExpressionTree((firstChild as? ExpressionTree)?.deepCopy(), (secondChild as? ExpressionTree)?.deepCopy(), content)
+    }
+    
+    val childCount: Int
+        get() = ((firstChild as? ExpressionTree)?.childCount ?: 0) + ((secondChild as? ExpressionTree)?.childCount ?: 0) + (if (content == null) 0 else 1)
+    
+    override fun toString(): String {
+        return if (content == null) {
+            if (firstChild != null) {
+                "$firstChild"
+            } else if (secondChild != null) {
+                "$secondChild"
+            } else {
+                "<UNKNOWN EXPRESSION>"
+            }
+        } else {
+            if (firstChild != null && secondChild != null) {
+                "$firstChild $content $secondChild"
+            } else {
+                "$content"
+            }
+        }
+    }
+    
+    fun print(indent: Int = 3) {
+        content?.let { println(" ".repeat(indent) + it) }
+        (firstChild as? ExpressionTree)?.print(indent + 3)
+        (secondChild as? ExpressionTree)?.print(indent + 3)
     }
     
     fun optimize() {
+        // TODO: optimize and type-check: disjunctions, conjunctions and comparisons
         (firstChild as? ExpressionTree)?.optimize()
         (secondChild as? ExpressionTree)?.optimize()
         if (content is AprlOperator) {
             val lhs = firstChild?.content
             val rhs = secondChild?.content
-            val expressionString = "<EXPRESSION>" // TODO: get *ORIGINAL* expression as string
-            val lhsString = "<LHS>" // TODO: get *ORIGINAL* lhs as string
-            val rhsString = "<RHS>" // TODO: get *ORIGINAL* rhs as string
-            if (rhs is AprlLiteral<*>) {
-                if (lhs is AprlLiteral<*>) {
-                    // lhs: constant, rhs: constant
-                    val lhsWrapped = Wrapper.wrap(lhs.value)
-                    val rhsWrapped = Wrapper.wrap(rhs.value)
-                    when (val evaluated = (content as AprlOperator).applyOrNull(lhsWrapped, rhsWrapped)) {
-                        is Boolean -> cauterize(AprlBooleanLiteral(evaluated))
-                        is Long -> cauterize(AprlIntegerLiteral(evaluated))
-                        is Double -> cauterize(AprlFloatLiteral(evaluated))
-                        is Char -> cauterize(AprlCharLiteral(evaluated))
-                        is String -> cauterize(AprlStringLiteral(evaluated))
-                        else -> return
-                    }
-                    WARNING("Constant expression '$expressionString' can be evaluated to '${(content as AprlLiteral<*>).value}'")
-                } else {
-                    // lhs: non-constant, rhs: constant
-                    when (content) {
-                        is AprlBitwiseOperator -> {
-                            if (rhs.value == 0 && lhs is AprlIntegerLiteral) {
-                                when (content) {
-                                    AprlBitwiseOperator.AND -> {
-                                        cauterize(AprlIntegerLiteral(0))
-                                        WARNING("Result of '$expressionString' is always '0'")
-                                    }
-                                    else -> {
-                                        cauterize(lhs)
-                                        WARNING("Result of '$expressionString' is always '$lhsString'")
-                                    }
-                                }
-                            }
-                        }
-                        is AprlAdditiveOperator -> {
-                            if (rhs.value == 0 || rhs.value == 0.0) {
-                                cauterize(lhs)
-                                WARNING("Result of '$expressionString' is always '$lhsString'")
-                            }
-                        }
-                        is AprlMultiplicativeOperator -> {
-                            if (rhs.value == 0 || rhs.value == 0.0) {
-                                when (content) {
-                                    AprlMultiplicativeOperator.MODULO, AprlMultiplicativeOperator.DIVIDE -> {
-                                        ERROR("Division by zero")
-                                    }
-                                    AprlMultiplicativeOperator.MULTIPLY -> {
-                                        if (rhs.value == 0.0) {
-                                            cauterize(AprlFloatLiteral(0.0))
-                                            WARNING("Result of '$expressionString' is always '0.0'")
-                                        } else {
-                                            cauterize(AprlIntegerLiteral(0))
-                                            WARNING("Result of '$expressionString' is always '0'")
-                                        }
-                                    }
-                                }
-                            } else if (rhs.value == 1 || rhs.value == 1.0) {
-                                when (content) {
-                                    AprlMultiplicativeOperator.MODULO -> {
-                                        if (rhs.value == 1.0) {
-                                            cauterize(AprlFloatLiteral(0.0))
-                                            WARNING("Result of '$expressionString' is always '0.0'")
-                                        } else {
-                                            cauterize(AprlIntegerLiteral(0))
-                                            WARNING("Result of '$expressionString' is always '0'")
-                                        }
-                                    }
-                                    AprlMultiplicativeOperator.MULTIPLY, AprlMultiplicativeOperator.DIVIDE -> {
-                                        cauterize(lhs)
-                                        WARNING("Result of '$expressionString' is always '$lhsString'")
-                                    }
-                                }
-                            } else if (rhs is AprlIntegerLiteral && rhs.value > 0 && rhs.value and (rhs.value - 1) == 0L) { // check if rhs.value is a power of 2
-                                var rhsValue = rhs.value
-                                var exp = 0L
-                                while (rhsValue and 1 == 0L) {
-                                    // shift the value as far right as possible and count the steps in order to determine exp
-                                    rhsValue = rhsValue shr 1
-                                    exp++
-                                }
-                                when (content) {
-                                    AprlMultiplicativeOperator.MULTIPLY -> {
-                                        // replace multiplication by 2**n with left shift by n
-                                        secondChild!!.content = AprlIntegerLiteral(exp)
-                                        content = AprlBitwiseOperator.SHL
-                                    }
-                                    AprlMultiplicativeOperator.DIVIDE -> {
-                                        // replace division by 2**n with right shift by n
-                                        secondChild!!.content = AprlIntegerLiteral(exp)
-                                        content = AprlBitwiseOperator.SHR
-                                    }
-                                }
-                            }
-                        }
-                        is AprlExponentialOperator -> {
-                            if (rhs.value == 0 || rhs.value == 0.0) {
-                                cauterize(AprlIntegerLiteral(1))
-                                WARNING("Result of '$expressionString' is always '1'")
-                            }
-                        }
-                    }
-                }
-            } else if (lhs is AprlLiteral<*>) {
-                // lhs: constant, rhs: non-constant
+            
+            fun optimizeCommutativeCncExpression(constant: AprlLiteral<*>, nonConstant: ExpressionTree) {
                 when (content) {
                     is AprlBitwiseOperator -> {
-                        if (lhs.value == 0) {
+                        if (constant.value == 0L) {
                             when (content) {
-                                AprlBitwiseOperator.AND -> {
+                                is AprlBitwiseOperator.AprlAndOperator -> {
                                     cauterize(AprlIntegerLiteral(0))
-                                    WARNING("Result of '$expressionString' is always '0'")
                                 }
                                 else -> {
-                                    cauterize(rhs)
-                                    WARNING("Result of '$expressionString' is always '$rhsString'")
+                                    cauterize(nonConstant)
                                 }
                             }
                         }
                     }
                     is AprlAdditiveOperator -> {
-                        if (lhs.value == 0 || lhs.value == 0.0) {
-                            cauterize(rhs)
-                            WARNING("Result of '$expressionString' is always '$rhsString'")
+                        if (constant.value == 0L || constant.value == 0.0) {
+                            cauterize(nonConstant)
                         }
                     }
-                    is AprlMultiplicativeOperator -> {
-                        if (lhs.value == 0 || lhs.value == 0.0) {
-                            cauterize(AprlIntegerLiteral(0))
-                            WARNING("Result of '$expressionString' is always '0'")
-                        } else if (lhs.value == 1) {
-                            when (content) {
-                                AprlMultiplicativeOperator.MULTIPLY -> {
-                                    cauterize(rhs)
-                                    WARNING("Result of '$expressionString' is always '$rhsString'")
-                                }
+                    is AprlMultiplicativeOperator.AprlMultiplyOperator -> {
+                        when (constant.value) {
+                            0L -> {
+                                cauterize(AprlIntegerLiteral(0))
                             }
-                        } else if (content == AprlMultiplicativeOperator.MULTIPLY && lhs is AprlIntegerLiteral && lhs.value > 0 && lhs.value and (lhs.value - 1) == 0L) { // check if lhs.value is a power of 2
-                            var lhsValue = lhs.value
-                            var exp = 0L
-                            while (lhsValue and 1 == 0L) {
-                                // shift the value as far right as possible and count the steps in order to determine exp
-                                lhsValue = lhsValue shr 1
-                                exp++
+                            0.0 -> {
+                                cauterize(AprlFloatLiteral(0.0))
                             }
-                            // replace multiplication by 2**n with left shift by n
-                            firstChild!!.content = rhs
-                            secondChild!!.content = AprlIntegerLiteral(exp)
-                            content = AprlBitwiseOperator.SHL
-                        }
-                    }
-                    is AprlExponentialOperator -> {
-                        if (lhs.value == 1) {
-                            cauterize(AprlIntegerLiteral(1))
-                            WARNING("Result of '$expressionString' is always '1'")
+                            1L, 1.0 -> {
+                                cauterize(nonConstant)
+                            }
                         }
                     }
                 }
             }
+            
+            if (rhs is AprlLiteral<*>) {
+                if (lhs is AprlLiteral<*>) {
+                    // lhs: constant, rhs: constant
+                    val lhsWrapped = Wrapper.wrap(lhs.value)
+                    val rhsWrapped = Wrapper.wrap(rhs.value)
+                    val literal = when (val evaluated = (content as AprlOverloadableOperator).applyOrNull(lhsWrapped, rhsWrapped)) {
+                        is Boolean -> AprlBooleanLiteral(evaluated)
+                        is Long -> AprlIntegerLiteral(evaluated)
+                        is Double -> AprlFloatLiteral(evaluated)
+                        is Char -> AprlCharLiteral(evaluated)
+                        is String -> AprlStringLiteral(evaluated)
+                        else -> return
+                    }
+                    cauterize(literal)
+                } else {
+                    // lhs: non-constant, rhs: constant
+                    when (content) {
+                        is AprlMultiplicativeOperator.AprlModuloOperator -> {
+                            when (rhs.value) {
+                                1.0 -> {
+                                    cauterize(AprlFloatLiteral(0.0))
+                                }
+                                1L -> {
+                                    cauterize(AprlIntegerLiteral(0))
+                                }
+                                0.0, 0L -> {
+                                    ERROR("Division by zero", content!!.context.getParent().positionRange)
+                                }
+                            }
+                        }
+                        is AprlMultiplicativeOperator.AprlDivideOperator -> {
+                            when (rhs.value) {
+                                1.0, 1L -> {
+                                    cauterize(firstChild!! as ExpressionTree)
+                                }
+                                0.0, 0L -> {
+                                    ERROR("Division by zero", content!!.context.getParent().positionRange)
+                                }
+                            }
+                        }
+                        is AprlExponentialOperator -> {
+                            if (rhs.value == 0L || rhs.value == 0.0) {
+                                cauterize(AprlIntegerLiteral(1))
+                            }
+                        }
+                        else -> {
+                            optimizeCommutativeCncExpression(rhs, firstChild!! as ExpressionTree)
+                        }
+                    }
+                }
+            } else if (lhs is AprlLiteral<*>) {
+                // lhs: constant, rhs: non-constant
+                if (content is AprlExponentialOperator && lhs.value == 1L) {
+                    cauterize(AprlIntegerLiteral(1))
+                } else {
+                    optimizeCommutativeCncExpression(lhs, secondChild!! as ExpressionTree)
+                }
+            }
         } else if (content == null) {
             if (firstChild == null) {
-                content = secondChild!!.content
-                firstChild = secondChild!!.firstChild
-                secondChild = secondChild!!.secondChild
+                cauterize(secondChild!! as ExpressionTree)
             } else if (secondChild == null) {
-                content = firstChild!!.content
-                firstChild = firstChild!!.firstChild
-                secondChild = firstChild!!.secondChild
+                cauterize(firstChild!! as ExpressionTree)
             }
         }
     }
     
     companion object {
-        fun leaf(content: AprlEvaluable): ExpressionTree {
+        fun leaf(content: AprlNode<*>): ExpressionTree {
             return ExpressionTree(null, null, content)
         }
     }

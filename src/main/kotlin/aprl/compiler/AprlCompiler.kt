@@ -12,7 +12,7 @@ object AprlCompiler {
     const val VERSION = 0.1
     const val CMD_NAME = "aprl"
     
-    private val settings = AprlCompilerSettings()
+    val settings = AprlCompilerSettings()
     
     private lateinit var inFile: File
     private lateinit var outFile: File

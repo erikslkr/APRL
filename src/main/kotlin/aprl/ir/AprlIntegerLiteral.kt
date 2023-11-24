@@ -1,5 +1,6 @@
 package aprl.ir
 
+import aprl.grammar.AprlParser.LiteralContext
 import aprl.lang.Int
 
 data class AprlIntegerLiteral(

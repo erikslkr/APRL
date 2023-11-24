@@ -1,8 +1,11 @@
 package aprl.ir
 
-data class AprlType(
-    var identifier: AprlIdentifier?
-) {
+import aprl.grammar.AprlParser.TypeContext
+
+data class AprlTypeReference(
+    var identifier: AprlIdentifier?,
+    override val context: TypeContext
+) : AprlNode<TypeContext> {
 
     val javaType: Class<*> // TODO: implement AprlType.javaType properly
         get() = when (identifier!!.identifiers.joinToString(".")) {

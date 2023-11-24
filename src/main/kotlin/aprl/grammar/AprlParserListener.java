@@ -78,6 +78,66 @@ public interface AprlParserListener extends ParseTreeListener {
 	 */
 	void exitParenthesizedExpression(AprlParser.ParenthesizedExpressionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link AprlParser#disjunctionExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterDisjunctionExpression(AprlParser.DisjunctionExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#disjunctionExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitDisjunctionExpression(AprlParser.DisjunctionExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#disjunctionOperator}.
+	 * @param ctx the parse tree
+	 */
+	void enterDisjunctionOperator(AprlParser.DisjunctionOperatorContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#disjunctionOperator}.
+	 * @param ctx the parse tree
+	 */
+	void exitDisjunctionOperator(AprlParser.DisjunctionOperatorContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#conjunctionExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterConjunctionExpression(AprlParser.ConjunctionExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#conjunctionExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitConjunctionExpression(AprlParser.ConjunctionExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#conjunctionOperator}.
+	 * @param ctx the parse tree
+	 */
+	void enterConjunctionOperator(AprlParser.ConjunctionOperatorContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#conjunctionOperator}.
+	 * @param ctx the parse tree
+	 */
+	void exitConjunctionOperator(AprlParser.ConjunctionOperatorContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#comparisonExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterComparisonExpression(AprlParser.ComparisonExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#comparisonExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitComparisonExpression(AprlParser.ComparisonExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#comparisonOperator}.
+	 * @param ctx the parse tree
+	 */
+	void enterComparisonOperator(AprlParser.ComparisonOperatorContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#comparisonOperator}.
+	 * @param ctx the parse tree
+	 */
+	void exitComparisonOperator(AprlParser.ComparisonOperatorContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link AprlParser#bitwiseExpression}.
 	 * @param ctx the parse tree
 	 */

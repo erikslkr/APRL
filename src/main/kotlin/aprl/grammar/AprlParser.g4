@@ -21,10 +21,38 @@ variableAssignment
 
 expression
     : parenthesizedExpression
-    | bitwiseExpression;
+    | disjunctionExpression;
 
 parenthesizedExpression
     : LPAREN expression RPAREN;
+
+disjunctionExpression
+    : conjunctionExpression disjunctionOperator disjunctionExpression
+    | conjunctionExpression;
+
+disjunctionOperator
+    : DOUBLE_OR;
+
+conjunctionExpression
+    : comparisonExpression conjunctionOperator conjunctionExpression
+    | comparisonExpression;
+
+conjunctionOperator
+    : DOUBLE_AND;
+
+comparisonExpression
+    : bitwiseExpression comparisonOperator comparisonExpression
+    | bitwiseExpression;
+
+comparisonOperator
+    : LANGLE
+    | RANGLE
+    | LANGLE_EQUAL
+    | RANGLE_EQUAL
+    | DOUBLE_EQUAL
+    | TRIPLE_EQUAL
+    | NOT_EQUAL
+    | NOT_DOUBLE_EQUAL;
 
 bitwiseExpression
     : bitwiseExpression bitwiseOperator additiveExpression

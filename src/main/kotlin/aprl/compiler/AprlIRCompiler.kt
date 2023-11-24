@@ -2,6 +2,8 @@ package aprl.compiler
 
 import aprl.ir.*
 import aprl.grammar.*
+import aprl.ir.expressions.*
+import aprl.ir.operators.*
 import org.antlr.v4.runtime.*
 import org.antlr.v4.gui.Trees
 import org.antlr.v4.runtime.tree.ParseTreeWalker
@@ -15,35 +17,50 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
     private val currentStatements = Stack<AprlStatement>()
     
     private val currentExpressions = Stack<AprlExpression>()
+    private val currentDisjunctionExpressions = Stack<AprlDisjunctionExpression>()
+    private val currentConjunctionExpressions = Stack<AprlConjunctionExpression>()
+    private val currentComparisonExpressions = Stack<AprlComparisonExpression>()
     private val currentBitwiseExpressions = Stack<AprlBitwiseExpression>()
     private val currentAdditiveExpressions = Stack<AprlAdditiveExpression>()
     private val currentMultiplicativeExpressions = Stack<AprlMultiplicativeExpression>()
     private val currentExponentialExpressions = Stack<AprlExponentialExpression>()
     private val currentAtomicExpressions = Stack<AprlAtomicExpression>()
 
-    private val currentTypeReferences = Stack<AprlType>()
+    private val currentTypeReferences = Stack<AprlTypeReference>()
 
     private val currentIdentifiers = Stack<AprlIdentifier>()
     
     override fun enterVariableDeclaration(ctx: AprlParser.VariableDeclarationContext) {
         val variableClassifier = VariableClassifier.fromNode(ctx.variableClassifier())
-        currentStatements.push(AprlVariableDeclaration(variableClassifier, null, null, null))
+        currentStatements.push(AprlVariableDeclaration(variableClassifier, null, null, null, ctx))
     }
     
     override fun enterVariableAssignment(ctx: AprlParser.VariableAssignmentContext) {
-        currentStatements.push(AprlVariableAssignment(null, null))
+        currentStatements.push(AprlVariableAssignment(null, null, ctx))
     }
     
     override fun enterExpression(ctx: AprlParser.ExpressionContext) {
-        currentExpressions.push(AprlExpression(null))
+        currentExpressions.push(AprlExpression(null, ctx))
     }
-    
+
+    override fun enterDisjunctionExpression(ctx: AprlParser.DisjunctionExpressionContext) {
+        currentDisjunctionExpressions.push(AprlDisjunctionExpression(null, null, null, ctx))
+    }
+
+    override fun enterConjunctionExpression(ctx: AprlParser.ConjunctionExpressionContext) {
+        currentConjunctionExpressions.push(AprlConjunctionExpression(null, null, null, ctx))
+    }
+
+    override fun enterComparisonExpression(ctx: AprlParser.ComparisonExpressionContext) {
+        currentComparisonExpressions.push(AprlComparisonExpression(null, null, null, ctx))
+    }
+
     override fun enterBitwiseExpression(ctx: AprlParser.BitwiseExpressionContext) {
         // Initialize empty bitwise expression, assign corresponding operator if present
         val bitwiseOperator = ctx.bitwiseOperator()?.let {
             AprlBitwiseOperator.fromNode(it)
         }
-        currentBitwiseExpressions.push(AprlBitwiseExpression(null, bitwiseOperator, null))
+        currentBitwiseExpressions.push(AprlBitwiseExpression(null, bitwiseOperator, null, ctx))
     }
     
     override fun enterAdditiveExpression(ctx: AprlParser.AdditiveExpressionContext) {
@@ -51,7 +68,7 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
         val additiveOperator = ctx.additiveOperator()?.let {
             AprlAdditiveOperator.fromNode(it)
         }
-        currentAdditiveExpressions.push(AprlAdditiveExpression(null, additiveOperator, null))
+        currentAdditiveExpressions.push(AprlAdditiveExpression(null, additiveOperator, null, ctx))
     }
     
     override fun enterMultiplicativeExpression(ctx: AprlParser.MultiplicativeExpressionContext) {
@@ -59,7 +76,7 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
         val multiplicativeOperator = ctx.multiplicativeOperator()?.let {
             AprlMultiplicativeOperator.fromNode(it)
         }
-        currentMultiplicativeExpressions.push(AprlMultiplicativeExpression(null, multiplicativeOperator, null))
+        currentMultiplicativeExpressions.push(AprlMultiplicativeExpression(null, multiplicativeOperator, null, ctx))
     }
     
     override fun enterExponentialExpression(ctx: AprlParser.ExponentialExpressionContext) {
@@ -67,20 +84,20 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
         val exponentialOperator = ctx.exponentialOperator()?.let {
             AprlExponentialOperator.fromNode(it)
         }
-        currentExponentialExpressions.push(AprlExponentialExpression(null, exponentialOperator, null))
+        currentExponentialExpressions.push(AprlExponentialExpression(null, exponentialOperator, null, ctx))
     }
 
     override fun enterAtomicExpression(ctx: AprlParser.AtomicExpressionContext) {
         // Initialize atomic expression
-        currentAtomicExpressions.push(AprlAtomicExpression(null, null, null))
+        currentAtomicExpressions.push(AprlAtomicExpression(null, null, null, ctx))
     }
 
     override fun enterType(ctx: AprlParser.TypeContext) {
-        currentTypeReferences.push(AprlType(null))
+        currentTypeReferences.push(AprlTypeReference(null, ctx))
     }
 
     override fun enterIdentifier(ctx: AprlParser.IdentifierContext) {
-        currentIdentifiers.push(AprlIdentifier())
+        currentIdentifiers.push(AprlIdentifier(context=ctx))
     }
     
     override fun exitVariableDeclaration(ctx: AprlParser.VariableDeclarationContext) {
@@ -123,6 +140,58 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
             }
         }
     }
+
+    override fun exitDisjunctionExpression(ctx: AprlParser.DisjunctionExpressionContext) {
+        // Take disjunction expression off the stack, it should be initialized and handled by now
+        val disjunctionExpression = currentDisjunctionExpressions.pop()
+        if (currentDisjunctionExpressions.isNotEmpty()) {
+            // Parent disjunction expression is present => set this one as its child
+            currentDisjunctionExpressions.peek().disjunctionExpression = disjunctionExpression
+        } else {
+            // No parent disjunction expression => parent is general expression
+            currentExpressions.peek().disjunctionExpression = disjunctionExpression
+        }
+    }
+    
+    override fun exitDisjunctionOperator(ctx: AprlParser.DisjunctionOperatorContext) {
+        if (currentDisjunctionExpressions.isNotEmpty()) {
+            currentDisjunctionExpressions.peek().disjunctionOperator = AprlDisjunctionOperator(ctx)
+        }
+    }
+    
+    override fun exitConjunctionExpression(ctx: AprlParser.ConjunctionExpressionContext) {
+        // Take conjunction expression off the stack, it should be initialized and handled by now
+        val conjunctionExpression = currentConjunctionExpressions.pop()
+        if (currentConjunctionExpressions.isNotEmpty()) {
+            // Parent conjunction expression is present => set this one as its child
+            currentConjunctionExpressions.peek().conjunctionExpression = conjunctionExpression
+        } else {
+            // No parent conjunction expression => parent is disjunction expression
+            currentDisjunctionExpressions.peek().conjunctionExpression = conjunctionExpression
+        }
+    }
+    
+    override fun exitConjunctionOperator(ctx: AprlParser.ConjunctionOperatorContext) {
+        currentConjunctionExpressions.peek().conjunctionOperator = AprlConjunctionOperator(ctx)
+    }
+    
+    override fun exitComparisonExpression(ctx: AprlParser.ComparisonExpressionContext) {
+        // Take comparison expression off the stack, it should be initialized and handled by now
+        val comparisonExpression = currentComparisonExpressions.pop()
+        if (currentComparisonExpressions.isNotEmpty()) {
+            // Parent comparison expression is present => set this one as its child
+            currentComparisonExpressions.peek().comparisonExpression = comparisonExpression
+        } else {
+            // No parent comparison expression => parent is conjunction expression
+            currentConjunctionExpressions.peek().comparisonExpression = comparisonExpression
+        }
+    }
+    
+    override fun exitComparisonOperator(ctx: AprlParser.ComparisonOperatorContext) {
+        if (currentComparisonExpressions.isNotEmpty()) {
+            currentComparisonExpressions.peek().comparisonOperator = AprlComparisonOperator.fromNode(ctx)
+        }
+    }
     
     override fun exitBitwiseExpression(ctx: AprlParser.BitwiseExpressionContext) {
         // Take bitwise expression off the stack, it should be initialized and handled by now
@@ -131,8 +200,8 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings)
             // Parent bitwise expression is present => set this one as its child
             currentBitwiseExpressions.peek().bitwiseExpression = bitwiseExpression
         } else {
-            // No parent bitwise expression => parent is general expression
-            currentExpressions.peek().bitwiseExpression = bitwiseExpression
+            // No parent bitwise expression => parent is comparison expression
+            currentComparisonExpressions.peek().bitwiseExpression = bitwiseExpression
         }
     }
     

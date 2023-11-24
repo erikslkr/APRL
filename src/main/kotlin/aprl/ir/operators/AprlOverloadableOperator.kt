@@ -1,10 +1,10 @@
-package aprl.ir
+package aprl.ir.operators
 
 import aprl.lang.Wrapper
+import org.antlr.v4.runtime.ParserRuleContext
 
-interface AprlOperator : AprlEvaluable {
+interface AprlOverloadableOperator<T: ParserRuleContext> : AprlOperator<T> {
     val functionName: String
-    val operatorSymbol: String
     
     fun applyOrNull(lhs: Any, rhs: Any): Any? {
         return try {

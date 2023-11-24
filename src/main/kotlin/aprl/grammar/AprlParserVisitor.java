@@ -53,6 +53,42 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitParenthesizedExpression(AprlParser.ParenthesizedExpressionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link AprlParser#disjunctionExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDisjunctionExpression(AprlParser.DisjunctionExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#disjunctionOperator}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDisjunctionOperator(AprlParser.DisjunctionOperatorContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#conjunctionExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConjunctionExpression(AprlParser.ConjunctionExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#conjunctionOperator}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConjunctionOperator(AprlParser.ConjunctionOperatorContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#comparisonExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitComparisonExpression(AprlParser.ComparisonExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#comparisonOperator}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitComparisonOperator(AprlParser.ComparisonOperatorContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link AprlParser#bitwiseExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

@@ -1,13 +1,16 @@
 package aprl.ir
 
 import aprl.grammar.AprlParser
+import aprl.grammar.AprlParser.VariableDeclarationContext
 
 data class AprlVariableDeclaration(
     val variableClassifier: VariableClassifier,
     var identifier: String?,
-    var typeAnnotation: AprlType?,
-    var expression: AprlExpression?
-) : AprlStatement {
+    var typeAnnotation: AprlTypeReference?,
+    var expression: AprlExpression?,
+    override val context: VariableDeclarationContext
+) : AprlStatement, AprlNode<VariableDeclarationContext> {
+    
     override fun toString(): String {
         return if (typeAnnotation == null) {
             "$variableClassifier $identifier = $expression"
@@ -17,11 +20,16 @@ data class AprlVariableDeclaration(
             "$variableClassifier $identifier: $typeAnnotation = $expression"
         }
     }
+    
 }
 
 enum class VariableClassifier {
     VAL,
     VAR;
+    
+    override fun toString(): String {
+        return super.toString().lowercase()
+    }
     
     companion object {
         fun fromNode(ctx: AprlParser.VariableClassifierContext): VariableClassifier {

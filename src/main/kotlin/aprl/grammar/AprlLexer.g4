@@ -6,6 +6,15 @@ VAR: 'var';
 VAL: 'val';
 
 EQUAL: '=';
+DOUBLE_EQUAL: '==';
+TRIPLE_EQUAL: '===';
+NOT_EQUAL: '!=';
+NOT_DOUBLE_EQUAL: '!==';
+
+LANGLE: '<';
+RANGLE: '>';
+LANGLE_EQUAL: '<=';
+RANGLE_EQUAL: '>=';
 
 LPAREN: '(';
 RPAREN: ')';
@@ -27,7 +36,9 @@ BACKSLASH: '\\';
 PERCENT: '%';
 
 AND: '&';
+DOUBLE_AND: '&&';
 OR: '|';
+DOUBLE_OR: '||';
 XOR: '^';
 SHL: '<<';
 SHR: '>>';
