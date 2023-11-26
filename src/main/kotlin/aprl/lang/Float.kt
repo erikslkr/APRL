@@ -10,6 +10,18 @@ data class Float(
     
     @Verbatim
     @OperatorFunction
+    fun compareTo(other: Float): kotlin.Int {
+        return value.compareTo(other.value)
+    }
+    
+    @Verbatim
+    @OperatorFunction
+    fun compareTo(other: Int): kotlin.Int {
+        return value.compareTo(other.value)
+    }
+    
+    @Verbatim
+    @OperatorFunction
     fun __plus__(other: Float): Float {
         return Float(value + other.value)
     }

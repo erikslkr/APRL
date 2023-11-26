@@ -4,7 +4,7 @@ import aprl.ir.AprlVariableDeclaration
 
 typealias LocalVariables = MutableMap<String, LocalVariable>
 
-fun emptyLocalVariables() = mutableMapOf<String, LocalVariable>()
+fun emptyLocalVariables(): LocalVariables = mutableMapOf()
 
 data class LocalVariable(
     val index: Int,

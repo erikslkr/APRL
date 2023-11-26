@@ -1,9 +1,8 @@
 package aprl.util
 
-import aprl.compiler.AprlCompiler
 import aprl.compiler.ERROR
 import aprl.compiler.PositionRange
-import aprl.grammar.AprlParser
+import aprl.grammar.AprlParser.LiteralContext
 import aprl.ir.*
 import aprl.ir.operators.*
 import aprl.lang.Wrapper
@@ -13,6 +12,12 @@ class ExpressionTree(
     secondChild: ExpressionTree? = null,
     content: AprlNode<*>?
 ) : BinaryTree<AprlNode<*>>(firstChild, secondChild, content) {
+    
+    private val firstChildExpressionTree: ExpressionTree?
+        get() = (firstChild as? ExpressionTree)
+    
+    private val secondChildExpressionTree: ExpressionTree?
+        get() = (secondChild as? ExpressionTree)
     
     val positionRange: PositionRange
         get() = toList().let { it.first().context.positionRange.first to it.last().context.positionRange.second }
@@ -32,7 +37,29 @@ class ExpressionTree(
     }
     
     fun deepCopy(): ExpressionTree {
-        return ExpressionTree((firstChild as? ExpressionTree)?.deepCopy(), (secondChild as? ExpressionTree)?.deepCopy(), content)
+        return ExpressionTree(firstChildExpressionTree?.deepCopy(), secondChildExpressionTree?.deepCopy(), content)
+    }
+    
+    fun flatSplit(predicate: (AprlNode<*>) -> Boolean): List<ExpressionTree> {
+        val content = content ?: return emptyList()
+        return if (predicate(content)) {
+            val leftList = firstChildExpressionTree?.flatSplit(predicate) ?: emptyList()
+            val rightList = secondChildExpressionTree?.flatSplit(predicate) ?: emptyList()
+            leftList + rightList
+        } else {
+            listOf(this)
+        }
+    }
+    
+    fun flatSplitIncludingDelimiters(predicate: (AprlNode<*>) -> Boolean): List<Pair<AprlNode<*>?, ExpressionTree>> {
+        val content = content ?: return emptyList()
+        return if (predicate(content)) {
+            val leftList = firstChildExpressionTree?.flatSplitIncludingDelimiters(predicate) ?: emptyList()
+            val rightList = secondChildExpressionTree?.flatSplitIncludingDelimiters(predicate) ?: emptyList()
+            leftList + (content to rightList.first().second) + rightList.drop(1)
+        } else {
+            listOf(null to this)
+        }
     }
     
     val childCount: Int
@@ -56,19 +83,15 @@ class ExpressionTree(
         }
     }
     
-    fun print(indent: Int = 3) {
-        content?.let { println(" ".repeat(indent) + it) }
-        (firstChild as? ExpressionTree)?.print(indent + 3)
-        (secondChild as? ExpressionTree)?.print(indent + 3)
-    }
-    
     fun optimize() {
         // TODO: optimize and type-check: disjunctions, conjunctions and comparisons
         (firstChild as? ExpressionTree)?.optimize()
         (secondChild as? ExpressionTree)?.optimize()
-        if (content is AprlOperator) {
+        if (content is AprlOverloadableOperator) {
             val lhs = firstChild?.content
             val rhs = secondChild?.content
+            
+            val syntheticContext = content?.context?.let { LiteralContext(it.getParent(), it.invokingState) } ?: return
             
             fun optimizeCommutativeCncExpression(constant: AprlLiteral<*>, nonConstant: ExpressionTree) {
                 when (content) {
@@ -76,7 +99,7 @@ class ExpressionTree(
                         if (constant.value == 0L) {
                             when (content) {
                                 is AprlBitwiseOperator.AprlAndOperator -> {
-                                    cauterize(AprlIntegerLiteral(0))
+                                    cauterize(AprlIntegerLiteral(0, syntheticContext))
                                 }
                                 else -> {
                                     cauterize(nonConstant)
@@ -92,10 +115,10 @@ class ExpressionTree(
                     is AprlMultiplicativeOperator.AprlMultiplyOperator -> {
                         when (constant.value) {
                             0L -> {
-                                cauterize(AprlIntegerLiteral(0))
+                                cauterize(AprlIntegerLiteral(0, syntheticContext))
                             }
                             0.0 -> {
-                                cauterize(AprlFloatLiteral(0.0))
+                                cauterize(AprlFloatLiteral(0.0, syntheticContext))
                             }
                             1L, 1.0 -> {
                                 cauterize(nonConstant)
@@ -110,12 +133,13 @@ class ExpressionTree(
                     // lhs: constant, rhs: constant
                     val lhsWrapped = Wrapper.wrap(lhs.value)
                     val rhsWrapped = Wrapper.wrap(rhs.value)
+                    
                     val literal = when (val evaluated = (content as AprlOverloadableOperator).applyOrNull(lhsWrapped, rhsWrapped)) {
-                        is Boolean -> AprlBooleanLiteral(evaluated)
-                        is Long -> AprlIntegerLiteral(evaluated)
-                        is Double -> AprlFloatLiteral(evaluated)
-                        is Char -> AprlCharLiteral(evaluated)
-                        is String -> AprlStringLiteral(evaluated)
+                        is Boolean -> AprlBooleanLiteral(evaluated, syntheticContext)
+                        is Long -> AprlIntegerLiteral(evaluated, syntheticContext)
+                        is Double -> AprlFloatLiteral(evaluated, syntheticContext)
+                        is Char -> AprlCharLiteral(evaluated, syntheticContext)
+                        is String -> AprlStringLiteral(evaluated, syntheticContext)
                         else -> return
                     }
                     cauterize(literal)
@@ -125,10 +149,10 @@ class ExpressionTree(
                         is AprlMultiplicativeOperator.AprlModuloOperator -> {
                             when (rhs.value) {
                                 1.0 -> {
-                                    cauterize(AprlFloatLiteral(0.0))
+                                    cauterize(AprlFloatLiteral(0.0, syntheticContext))
                                 }
                                 1L -> {
-                                    cauterize(AprlIntegerLiteral(0))
+                                    cauterize(AprlIntegerLiteral(0, syntheticContext))
                                 }
                                 0.0, 0L -> {
                                     ERROR("Division by zero", content!!.context.getParent().positionRange)
@@ -147,7 +171,7 @@ class ExpressionTree(
                         }
                         is AprlExponentialOperator -> {
                             if (rhs.value == 0L || rhs.value == 0.0) {
-                                cauterize(AprlIntegerLiteral(1))
+                                cauterize(AprlIntegerLiteral(1, syntheticContext))
                             }
                         }
                         else -> {
@@ -158,7 +182,7 @@ class ExpressionTree(
             } else if (lhs is AprlLiteral<*>) {
                 // lhs: constant, rhs: non-constant
                 if (content is AprlExponentialOperator && lhs.value == 1L) {
-                    cauterize(AprlIntegerLiteral(1))
+                    cauterize(AprlIntegerLiteral(1, syntheticContext))
                 } else {
                     optimizeCommutativeCncExpression(lhs, secondChild!! as ExpressionTree)
                 }

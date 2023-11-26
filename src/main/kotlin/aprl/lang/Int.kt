@@ -10,20 +10,14 @@ data class Int(
     
     @Verbatim
     @OperatorFunction
-    fun __not__(): Int {
-        return Int(value.inv())
+    fun compareTo(other: Int): kotlin.Int {
+        return value.compareTo(other.value)
     }
     
     @Verbatim
     @OperatorFunction
-    fun __negate__(): Int {
-        return Int(-value)
-    }
-    
-    @Verbatim
-    @OperatorFunction
-    fun __inverse__(): Float {
-        return Float(1.0 / value.toDouble())
+    fun compareTo(other: Float): kotlin.Int {
+        return value.compareTo(other.value)
     }
     
     @Verbatim

@@ -4,6 +4,7 @@ import aprl.ir.AprlIR
 import aprl.ir.AprlVariableAssignment
 import aprl.ir.AprlVariableDeclaration
 import aprl.util.emptyLocalVariables
+import aprl.util.localVariables
 import aprl.util.visitAprlVariableAssignment
 import aprl.util.visitAprlVariableDeclaration
 import org.objectweb.asm.ClassWriter
@@ -15,7 +16,7 @@ class AprlJvmBytecodeCompiler(private val settings: AprlCompilerSettings) {
     
     fun compile(ir: AprlIR): ByteArray {
         this.source = ir
-        val classWriter = ClassWriter(0)
+        val classWriter = ClassWriter(ClassWriter.COMPUTE_FRAMES)
         classWriter.visit(
             V1_8,
             ACC_PUBLIC + ACC_FINAL,
@@ -32,14 +33,13 @@ class AprlJvmBytecodeCompiler(private val settings: AprlCompilerSettings) {
             null
         )
         mainMethod.visitCode()
-        val localVariables = emptyLocalVariables()
         for (statement in ir.statements) {
             when (statement) {
                 is AprlVariableDeclaration -> {
-                    mainMethod.visitAprlVariableDeclaration(statement, localVariables)
+                    mainMethod.visitAprlVariableDeclaration(statement)
                 }
                 is AprlVariableAssignment -> {
-                    mainMethod.visitAprlVariableAssignment(statement, localVariables)
+                    mainMethod.visitAprlVariableAssignment(statement)
                 }
             }
         }
