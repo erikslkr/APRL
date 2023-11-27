@@ -6,7 +6,7 @@ data class AprlVariableAssignment(
     var identifier: String?,
     var expression: AprlExpression?,
     override val context: VariableAssignmentContext
-) : AprlStatement, AprlNode<VariableAssignmentContext> {
+) : AprlLocalStatement, AprlNode<VariableAssignmentContext> {
     
     override fun toString(): String {
         return "$identifier = $expression"

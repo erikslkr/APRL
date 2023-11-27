@@ -9,7 +9,7 @@ data class AprlVariableDeclaration(
     var typeAnnotation: AprlTypeReference?,
     var expression: AprlExpression?,
     override val context: VariableDeclarationContext
-) : AprlStatement, AprlNode<VariableDeclarationContext> {
+) : AprlGlobalStatement, AprlLocalStatement, AprlNode<VariableDeclarationContext> {
     
     override fun toString(): String {
         return if (typeAnnotation == null) {

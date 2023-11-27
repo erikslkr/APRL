@@ -5,6 +5,9 @@ WS: [\u0020\u0009\u000C] -> skip;
 VAR: 'var';
 VAL: 'val';
 
+FUNCTION: 'function';
+RETURN: 'return';
+
 EQUAL: '=';
 DOUBLE_EQUAL: '==';
 TRIPLE_EQUAL: '===';
@@ -34,6 +37,8 @@ DOUBLE_ASTERISK: '**';
 SLASH: '/';
 BACKSLASH: '\\';
 PERCENT: '%';
+
+RIGHT_ARROW: '->';
 
 AND: '&';
 DOUBLE_AND: '&&';

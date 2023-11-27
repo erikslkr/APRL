@@ -17,11 +17,17 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAprlFile(AprlParser.AprlFileContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AprlParser#statement}.
+	 * Visit a parse tree produced by {@link AprlParser#globalStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitStatement(AprlParser.StatementContext ctx);
+	T visitGlobalStatement(AprlParser.GlobalStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#localStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLocalStatement(AprlParser.LocalStatementContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AprlParser#variableDeclaration}.
 	 * @param ctx the parse tree
@@ -40,6 +46,36 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitVariableAssignment(AprlParser.VariableAssignmentContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#returnStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitReturnStatement(AprlParser.ReturnStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#functionDeclaration}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionDeclaration(AprlParser.FunctionDeclarationContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#functionArguments}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionArguments(AprlParser.FunctionArgumentsContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#functionArgument}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionArgument(AprlParser.FunctionArgumentContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#functionBody}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionBody(AprlParser.FunctionBodyContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AprlParser#expression}.
 	 * @param ctx the parse tree

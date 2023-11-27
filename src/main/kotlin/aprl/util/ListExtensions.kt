@@ -19,3 +19,15 @@ fun List<Int>.nextOrMissing(first: Int = 1): Int {
     // If every integer in `i..<max` is present, return next largest integer
     return max + 1
 }
+
+fun <T> List<T>.duplicates(): List<List<T>> {
+    return duplicates { it }
+}
+
+fun <T, V> List<T>.duplicates(by: (T) -> V): List<List<T>> {
+    val duplicatesMap = mutableMapOf<V, MutableList<T>>()
+    for (element in this) {
+        duplicatesMap.getOrPut(by(element)) { mutableListOf() }.add(element)
+    }
+    return duplicatesMap.values.filter { it.size > 1 }
+}

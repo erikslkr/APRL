@@ -18,15 +18,25 @@ public interface AprlParserListener extends ParseTreeListener {
 	 */
 	void exitAprlFile(AprlParser.AprlFileContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link AprlParser#statement}.
+	 * Enter a parse tree produced by {@link AprlParser#globalStatement}.
 	 * @param ctx the parse tree
 	 */
-	void enterStatement(AprlParser.StatementContext ctx);
+	void enterGlobalStatement(AprlParser.GlobalStatementContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link AprlParser#statement}.
+	 * Exit a parse tree produced by {@link AprlParser#globalStatement}.
 	 * @param ctx the parse tree
 	 */
-	void exitStatement(AprlParser.StatementContext ctx);
+	void exitGlobalStatement(AprlParser.GlobalStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#localStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterLocalStatement(AprlParser.LocalStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#localStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitLocalStatement(AprlParser.LocalStatementContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AprlParser#variableDeclaration}.
 	 * @param ctx the parse tree
@@ -57,6 +67,56 @@ public interface AprlParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitVariableAssignment(AprlParser.VariableAssignmentContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#returnStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterReturnStatement(AprlParser.ReturnStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#returnStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitReturnStatement(AprlParser.ReturnStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#functionDeclaration}.
+	 * @param ctx the parse tree
+	 */
+	void enterFunctionDeclaration(AprlParser.FunctionDeclarationContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#functionDeclaration}.
+	 * @param ctx the parse tree
+	 */
+	void exitFunctionDeclaration(AprlParser.FunctionDeclarationContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#functionArguments}.
+	 * @param ctx the parse tree
+	 */
+	void enterFunctionArguments(AprlParser.FunctionArgumentsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#functionArguments}.
+	 * @param ctx the parse tree
+	 */
+	void exitFunctionArguments(AprlParser.FunctionArgumentsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#functionArgument}.
+	 * @param ctx the parse tree
+	 */
+	void enterFunctionArgument(AprlParser.FunctionArgumentContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#functionArgument}.
+	 * @param ctx the parse tree
+	 */
+	void exitFunctionArgument(AprlParser.FunctionArgumentContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#functionBody}.
+	 * @param ctx the parse tree
+	 */
+	void enterFunctionBody(AprlParser.FunctionBodyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#functionBody}.
+	 * @param ctx the parse tree
+	 */
+	void exitFunctionBody(AprlParser.FunctionBodyContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AprlParser#expression}.
 	 * @param ctx the parse tree

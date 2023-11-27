@@ -3,11 +3,16 @@ parser grammar AprlParser;
 options { tokenVocab = AprlLexer; }
 
 aprlFile
-    : NL* statement (NL+ statement)* NL* EOF;
+    : NL* globalStatement (NL+ globalStatement)* NL* EOF;
 
-statement
+globalStatement
     : variableDeclaration
-    | variableAssignment;
+    | functionDeclaration;
+
+localStatement
+    : variableDeclaration
+    | variableAssignment
+    | returnStatement;
 
 variableDeclaration
     : variableClassifier simpleIdentifier COLON type (EQUAL expression)?
@@ -18,6 +23,21 @@ variableClassifier
 
 variableAssignment
     : simpleIdentifier EQUAL expression;
+
+returnStatement
+    : RETURN expression?;
+
+functionDeclaration
+    : FUNCTION simpleIdentifier functionArguments (RIGHT_ARROW type)? functionBody?;
+
+functionArguments
+    : LPAREN functionArgument? (COMMA functionArgument) RPAREN;
+
+functionArgument
+    : simpleIdentifier COLON type;
+
+functionBody
+    : LCURLY NL* localStatement? (NL+ localStatement)* NL* RCURLY;
 
 expression
     : parenthesizedExpression

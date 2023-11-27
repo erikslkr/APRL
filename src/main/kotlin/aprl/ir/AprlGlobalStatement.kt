@@ -1,5 +1,5 @@
 package aprl.ir
 
-interface AprlStatement {
+interface AprlGlobalStatement {
     override fun toString(): String
 }

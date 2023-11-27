@@ -1,14 +1,12 @@
 package aprl.compiler
 
+import aprl.ir.AprlFunctionDeclaration
 import aprl.ir.AprlIR
-import aprl.ir.AprlVariableAssignment
 import aprl.ir.AprlVariableDeclaration
-import aprl.util.emptyLocalVariables
-import aprl.util.localVariables
-import aprl.util.visitAprlVariableAssignment
-import aprl.util.visitAprlVariableDeclaration
+import aprl.util.AprlFunctionVisitor
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes.*
+import org.objectweb.asm.Type
 
 class AprlJvmBytecodeCompiler(private val settings: AprlCompilerSettings) {
     
@@ -25,32 +23,24 @@ class AprlJvmBytecodeCompiler(private val settings: AprlCompilerSettings) {
             "java/lang/Object",
             emptyArray()
         )
-        val mainMethod = classWriter.visitMethod(
-            ACC_PUBLIC + ACC_STATIC + ACC_FINAL,
-            "main",
-            "([Ljava/lang/String;)V",
-            null,
-            null
-        )
-        mainMethod.visitCode()
-        for (statement in ir.statements) {
-            when (statement) {
-                is AprlVariableDeclaration -> {
-                    mainMethod.visitAprlVariableDeclaration(statement)
-                }
-                is AprlVariableAssignment -> {
-                    mainMethod.visitAprlVariableAssignment(statement)
-                }
+        for (functionDeclaration in ir.statements.filterIsInstance(AprlFunctionDeclaration::class.java)) {
+            val argumentsDescriptor = functionDeclaration.arguments.joinToString("") {
+                Type.getType(it.type!!.javaType).descriptor
             }
+            val returnTypeDescriptor = functionDeclaration.returnType?.let { Type.getType(it.javaType).descriptor } ?: "V"
+            val function = classWriter.visitMethod(
+                ACC_PUBLIC + ACC_STATIC + ACC_FINAL,
+                functionDeclaration.name!!,
+                "($argumentsDescriptor)$returnTypeDescriptor",
+                null,
+                null
+            )
+            val functionVisitor = AprlFunctionVisitor(function)
+            functionVisitor.visitFunctionDeclaration(functionDeclaration)
         }
-        for (variable in localVariables.values) {
-            mainMethod.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;")
-            mainMethod.visitVarInsn(ALOAD, variable.index)
-            mainMethod.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V", false)
+        for (variableDeclaration in ir.statements.filterIsInstance(AprlVariableDeclaration::class.java)) {
+            // TODO: global variables (fields)
         }
-        mainMethod.visitInsn(RETURN)
-        mainMethod.visitMaxs(4, localVariables.size) // TODO: calculate max stack size
-        mainMethod.visitEnd()
         classWriter.visitEnd()
         return classWriter.toByteArray()
     }
