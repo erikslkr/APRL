@@ -32,17 +32,16 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
         visitDisjunction(expressionTree)
     }
     
-    private fun visitLogicalConnective(
+    private inline fun <reified Operator> visitLogicalConnective(
         expressionTree: ExpressionTree,
-        operatorClass: Class<out AprlOperator<*>>,
-        inferiorExpressionHandler: (ExpressionTree) -> Unit,
+        crossinline inferiorExpressionHandler: (ExpressionTree) -> Unit,
         logicHandler: (labelLoad0: Label, labelLoad1: Label, labelContinue: Label) -> Unit,
         labelHandler: (labelLoad0: Label, labelLoad1: Label, labelContinue: Label) -> Unit
     ) {
         val booleanType = aprl.lang.Boolean::class.java
         val booleanInternalName = Type.getType(booleanType).internalName
         
-        fun handleOperand(operand: ExpressionTree) {
+        val handleOperand = { operand: ExpressionTree ->
             inferiorExpressionHandler(operand)
             // implicit conversion to boolean if necessary
             if (!booleanType.isAssignableFrom(types.last)) {
@@ -52,7 +51,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
             visitMethodInsn(INVOKEVIRTUAL, booleanInternalName, "component1", "()Z", false)
         }
         
-        val operands = expressionTree.flatSplit { it.javaClass == operatorClass }
+        val operands = expressionTree.flatSplit { it is Operator }
         if (operands.size > 1) {
             visitTypeInsn(NEW, booleanInternalName)
             visitInsn(DUP)
@@ -75,9 +74,8 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
     }
     
     private fun visitDisjunction(expressionTree: ExpressionTree) {
-        visitLogicalConnective(
+        visitLogicalConnective<AprlDisjunctionOperator>(
             expressionTree,
-            AprlDisjunctionOperator::class.java,
             inferiorExpressionHandler = { operand ->
                 visitConjunction(operand)
             },
@@ -96,9 +94,8 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
     }
     
     private fun visitConjunction(expressionTree: ExpressionTree) {
-        visitLogicalConnective(
+        visitLogicalConnective<AprlConjunctionOperator>(
             expressionTree,
-            AprlConjunctionOperator::class.java,
             inferiorExpressionHandler = { operand ->
                 if (operand.content is AprlDisjunctionOperator) {
                     visitDisjunction(operand)
@@ -227,7 +224,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
         }
         val (comparator, comparand) = comparands.last()
         // logic for last comparison
-        performComparison(comparator, comparand) { compareToInvoker ->
+        performComparison(comparator, comparand) { invokeCompareTo ->
             when (comparator) {
                 is AprlComparisonOperator.AprlIdenticalOperator -> {
                     visitJumpInsn(IF_ACMPEQ, labelLoad1)
@@ -236,27 +233,27 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
                     visitJumpInsn(IF_ACMPNE, labelLoad1)
                 }
                 is AprlComparisonOperator.AprlEqualOperator -> {
-                    compareToInvoker()
+                    invokeCompareTo()
                     visitJumpInsn(IF_ICMPEQ, labelLoad1)
                 }
                 is AprlComparisonOperator.AprlNotEqualOperator -> {
-                    compareToInvoker()
+                    invokeCompareTo()
                     visitJumpInsn(IF_ICMPNE, labelLoad1)
                 }
                 is AprlComparisonOperator.AprlLessThanOperator -> {
-                    compareToInvoker()
+                    invokeCompareTo()
                     visitJumpInsn(IF_ICMPLT, labelLoad1)
                 }
                 is AprlComparisonOperator.AprlLessEqualOperator -> {
-                    compareToInvoker()
+                    invokeCompareTo()
                     visitJumpInsn(IF_ICMPLE, labelLoad1)
                 }
                 is AprlComparisonOperator.AprlGreaterThanOperator -> {
-                    compareToInvoker()
+                    invokeCompareTo()
                     visitJumpInsn(IF_ICMPGT, labelLoad1)
                 }
                 is AprlComparisonOperator.AprlGreaterEqualOperator -> {
-                    compareToInvoker()
+                    invokeCompareTo()
                     visitJumpInsn(IF_ICMPGE, labelLoad1)
                 }
             }
@@ -287,12 +284,151 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
             (expression.secondChild as? ExpressionTree)?.also { visitOverloadableExpression(it, operatorClass, inferiorExpressionHandler, verbatim) }
         } else {
             visitOverloadableExpression(expression.firstChild as ExpressionTree, operatorClass, inferiorExpressionHandler, verbatim)
+            var verbatimType: Class<*>? = null
+            @Suppress("FunctionName")
+            fun NO_VERBATIM() {
+                WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
+                verbatimType = null
+            }
+            if (verbatim) {
+                if (types.last().methods.none { it.name == "component1" && it.parameterTypes.isEmpty() }) {
+                    WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
+                } else {
+                    val component1 = types.last().getMethod("component1")
+                    val primitiveReturnType = component1.returnType.primitiveDescriptorOrNull()
+                    if (primitiveReturnType != null) {
+                        val internalName = Type.getType(types.last()).internalName
+                        visitMethodInsn(INVOKEVIRTUAL, internalName, "component1", "()$primitiveReturnType", false)
+                        verbatimType = component1.returnType
+                    } else {
+                        WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
+                    }
+                }
+            }
             visitOverloadableExpression(expression.secondChild as ExpressionTree, operatorClass, inferiorExpressionHandler, verbatim)
+            if (verbatim && verbatimType != null) {
+                if (types.last().methods.none { it.name == "component1" && it.parameterTypes.isEmpty() }) {
+                    NO_VERBATIM()
+                } else {
+                    val component1 = types.last().getMethod("component1")
+                    val primitiveReturnType = component1.returnType.primitiveDescriptorOrNull()
+                    if (primitiveReturnType != null) {
+                        val internalName = Type.getType(types.last()).internalName
+                        visitMethodInsn(INVOKEVIRTUAL, internalName, "component1", "()$primitiveReturnType", false)
+                        if (component1.returnType != verbatimType) {
+                            NO_VERBATIM()
+                        } else {
+                            types.pollLast()
+                            types.pollLast()
+                            types.add(component1.returnType)
+                        }
+                    } else {
+                        WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
+                        verbatimType = null
+                    }
+                }
+            }
             val leftType = types.previousToLast ?: throw InternalError("The compiler was not able to type-check one or multiple expressions")
             val rightType = types.lastButNotFirstOrNull() ?: Any::class.java.also { types.add(it) }
-            if (verbatim) {
-                // TODO: Verbatim operation
-            } else {
+            if (verbatim && verbatimType != null) {
+                val primitiveDescriptor = verbatimType!!.primitiveDescriptorOrNull()!!
+                when (operator) {
+                    is AprlBitwiseOperator.AprlAndOperator -> {
+                        when (primitiveDescriptor) {
+                            "I" -> visitInsn(IAND)
+                            "J" -> visitInsn(LAND)
+                            else -> NO_VERBATIM()
+                        }
+                    }
+                    is AprlBitwiseOperator.AprlOrOperator -> {
+                        when (primitiveDescriptor) {
+                            "I" -> visitInsn(IOR)
+                            "J" -> visitInsn(LOR)
+                            else -> NO_VERBATIM()
+                        }
+                    }
+                    is AprlBitwiseOperator.AprlXorOperator -> {
+                        when (primitiveDescriptor) {
+                            "I" -> visitInsn(IXOR)
+                            "J" -> visitInsn(LXOR)
+                            else -> NO_VERBATIM()
+                        }
+                    }
+                    is AprlBitwiseOperator.AprlShlOperator -> {
+                        when (primitiveDescriptor) {
+                            "I" -> visitInsn(ISHL)
+                            "J" -> visitInsn(LSHL)
+                            else -> NO_VERBATIM()
+                        }
+                    }
+                    is AprlBitwiseOperator.AprlShrOperator -> {
+                        when (primitiveDescriptor) {
+                            "I" -> visitInsn(ISHR)
+                            "J" -> visitInsn(LSHR)
+                            else -> NO_VERBATIM()
+                        }
+                    }
+                    is AprlBitwiseOperator.AprlUshrOperator -> {
+                        when (primitiveDescriptor) {
+                            "I" -> visitInsn(IUSHR)
+                            "J" -> visitInsn(LUSHR)
+                            else -> NO_VERBATIM()
+                        }
+                    }
+                    is AprlAdditiveOperator.AprlPlusOperator -> {
+                        when (primitiveDescriptor) {
+                            "I" -> visitInsn(IADD)
+                            "J" -> visitInsn(LADD)
+                            "F" -> visitInsn(FADD)
+                            "D" -> visitInsn(DADD)
+                            else -> NO_VERBATIM()
+                        }
+                    }
+                    is AprlAdditiveOperator.AprlMinusOperator -> {
+                        when (primitiveDescriptor) {
+                            "I" -> visitInsn(ISUB)
+                            "J" -> visitInsn(LSUB)
+                            "F" -> visitInsn(FSUB)
+                            "D" -> visitInsn(DSUB)
+                            else -> NO_VERBATIM()
+                        }
+                    }
+                    is AprlMultiplicativeOperator.AprlMultiplyOperator -> {
+                        when (primitiveDescriptor) {
+                            "I" -> visitInsn(IMUL)
+                            "J" -> visitInsn(LMUL)
+                            "F" -> visitInsn(FMUL)
+                            "D" -> visitInsn(DMUL)
+                            else -> NO_VERBATIM()
+                        }
+                    }
+                    is AprlMultiplicativeOperator.AprlDivideOperator -> {
+                        when (primitiveDescriptor) {
+                            "I" -> visitInsn(IDIV)
+                            "J" -> visitInsn(LDIV)
+                            "F" -> visitInsn(FDIV)
+                            "D" -> visitInsn(DDIV)
+                            else -> NO_VERBATIM()
+                        }
+                    }
+                    is AprlMultiplicativeOperator.AprlModuloOperator -> {
+                        when (primitiveDescriptor) {
+                            "I" -> visitInsn(IREM)
+                            "J" -> visitInsn(LREM)
+                            "F" -> visitInsn(FREM)
+                            "D" -> visitInsn(DREM)
+                            else -> NO_VERBATIM()
+                        }
+                    }
+                    else -> NO_VERBATIM()
+                }
+                when (primitiveDescriptor) {
+                    "D", "F" -> visitOpaqueWrapperInitialization<Double, aprl.lang.Float>()
+                    "J", "I" -> visitOpaqueWrapperInitialization<Long, aprl.lang.Int>()
+                    else -> NO_VERBATIM()
+                }
+            }
+            if (!verbatim) {
                 var bestOperatorFunctionMatch: Method? = null
                 for (method in leftType.methods.filter { it.name == operator.functionName }) {
                     // find function that matches given rhs type and is annotated with #OperatorFunction
@@ -484,7 +620,16 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
         }
     }
     
-    fun <T: Any> visitWrapperInitialization(value: T?, type: Class<out T>) {
+    private inline fun <reified R, reified T> visitOpaqueWrapperInitialization() {
+        val internalName = Type.getType(T::class.java).internalName
+        val representedTypeDescriptor = R::class.java.primitiveDescriptorOrNull() ?: Type.getType(R::class.java).descriptor
+        visitTypeInsn(NEW, internalName)
+        visitInsn(DUP)
+        visitMethodInsn(INVOKESPECIAL, internalName, "<init>", "($representedTypeDescriptor)V", false)
+        types.add(T::class.java)
+    }
+    
+    private fun <T: Any> visitWrapperInitialization(value: T?, type: Class<out T>) {
         // Name of the wrapper class, e.g. `aprl/lang/Int`
         val internalName = Type.getType(type).internalName
         visitTypeInsn(NEW, internalName)
@@ -494,15 +639,8 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
         } else {
             visitInsn(ACONST_NULL)
         }
-        val representedType = Type.getType(value?.javaClass ?: Any::class.java).descriptor
-        val primitiveType = when (representedType) {
-            "Ljava/lang/Boolean;" -> "Z"
-            "Ljava/lang/Long;" -> "J"
-            "Ljava/lang/Double;" -> "D"
-            "Ljava/lang/Character;" -> "C"
-            else -> null
-        }
-        visitMethodInsn(INVOKESPECIAL, internalName, "<init>", "(${primitiveType ?: representedType})V", false)
+        val representedType = (value?.javaClass ?: Any::class.java).let { it.primitiveDescriptorOrNull() ?: it }
+        visitMethodInsn(INVOKESPECIAL, internalName, "<init>", "($representedType)V", false)
         types.add(type)
     }
     
