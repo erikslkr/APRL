@@ -20,7 +20,9 @@ class ExpressionTree(
         get() = (secondChild as? ExpressionTree)
     
     val positionRange: PositionRange
-        get() = toList().let { it.first().context.positionRange.first to it.last().context.positionRange.second }
+        get() {
+            return toList().let { it.first().context.positionRange.first to it.last().context.positionRange.second }
+        }
     
     private fun cauterize(literal: AprlLiteral<*>) {
         content = literal

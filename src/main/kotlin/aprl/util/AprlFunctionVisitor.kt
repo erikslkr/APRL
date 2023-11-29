@@ -639,7 +639,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
         } else {
             visitInsn(ACONST_NULL)
         }
-        val representedType = (value?.javaClass ?: Any::class.java).let { it.primitiveDescriptorOrNull() ?: it }
+        val representedType = (value?.javaClass ?: Any::class.java).let { it.primitiveDescriptorOrNull() ?: Type.getType(it).descriptor }
         visitMethodInsn(INVOKESPECIAL, internalName, "<init>", "($representedType)V", false)
         types.add(type)
     }
@@ -678,7 +678,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
         val beforeOptimization = expressionTree.deepCopy()
         expressionTree.optimize()
         if (expressionTree.childCount != beforeOptimization.childCount && "$expressionTree" != "$beforeOptimization") {
-            WARNING("Expression '$beforeOptimization' can be evaluated to '$expressionTree'", expressionTree.positionRange)
+            WARNING("Expression '$beforeOptimization' can be evaluated to '$expressionTree'", beforeOptimization.positionRange)
         }
         visitExpression(expressionTree)
     }
@@ -730,7 +730,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
     private fun visitVariableAssignment(assignment: AprlVariableAssignment) {
         val expressionTree = assignment.expression!!.toTree()
         expressionTree.optimize()
-        if (assignment.identifier!! !in localVariables.keys) {
+        if (assignment.identifier!! in localVariables.keys) {
             val localVariable = localVariables[assignment.identifier]!!
             if (!localVariable.isMutable) {
                 // Variable cannot be reassigned
@@ -756,9 +756,10 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
                 visitInsn(ACONST_NULL)
             } else {
                 val expressionTree = returnStatement.expression!!.toTree()
+                val beforeOptimization = expressionTree.deepCopy()
                 visitExpressionOptimization(expressionTree)
                 if (!returnType.isAssignableFrom(types.last())) {
-                    ERROR("Type mismatch: Required '${returnType.simpleName}', found '${types.last().simpleName}'", returnStatement.expression!!.context.positionRange)
+                    visitImplicitConversion(returnType, beforeOptimization)
                 }
             }
             visitInsn(ARETURN)

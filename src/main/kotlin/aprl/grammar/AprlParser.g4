@@ -31,7 +31,7 @@ functionDeclaration
     : FUNCTION simpleIdentifier functionArguments (RIGHT_ARROW type)? functionBody?;
 
 functionArguments
-    : LPAREN functionArgument? (COMMA functionArgument) RPAREN;
+    : LPAREN functionArgument? (COMMA functionArgument)* RPAREN;
 
 functionArgument
     : simpleIdentifier COLON type;
