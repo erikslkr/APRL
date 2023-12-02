@@ -23,7 +23,7 @@ class AprlJvmBytecodeCompiler(private val settings: AprlCompilerSettings) {
             "java/lang/Object",
             emptyArray()
         )
-        for (functionDeclaration in ir.statements.filterIsInstance(AprlFunctionDeclaration::class.java)) {
+        for (functionDeclaration in ir.globalStatements.filterIsInstance(AprlFunctionDeclaration::class.java)) {
             val argumentsDescriptor = functionDeclaration.arguments.joinToString("") {
                 Type.getType(it.type!!.javaType).descriptor
             }
@@ -38,7 +38,7 @@ class AprlJvmBytecodeCompiler(private val settings: AprlCompilerSettings) {
             val functionVisitor = AprlFunctionVisitor(function)
             functionVisitor.visitFunctionDeclaration(functionDeclaration)
         }
-        for (variableDeclaration in ir.statements.filterIsInstance(AprlVariableDeclaration::class.java)) {
+        for (variableDeclaration in ir.globalStatements.filterIsInstance(AprlVariableDeclaration::class.java)) {
             // TODO: global variables (fields)
         }
         classWriter.visitEnd()

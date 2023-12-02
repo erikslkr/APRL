@@ -2,6 +2,7 @@ package aprl.compiler
 
 import aprl.ir.*
 import aprl.grammar.*
+import aprl.grammar.AprlParser.*
 import aprl.ir.expressions.*
 import aprl.ir.operators.*
 import org.antlr.v4.runtime.*
@@ -36,302 +37,296 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     
     private val currentIdentifiers = Stack<AprlIdentifier>()
     
-    override fun enterFunctionDeclaration(ctx: AprlParser.FunctionDeclarationContext) {
+    override fun enterFunctionDeclaration(ctx: FunctionDeclarationContext) {
         currentFunctionDeclarations.add(AprlFunctionDeclaration(null, mutableListOf(), null, null, ctx))
     }
     
-    override fun enterFunctionArgument(ctx: AprlParser.FunctionArgumentContext) {
+    override fun enterFunctionArgument(ctx: FunctionArgumentContext) {
         currentFunctionArguments.add(AprlFunctionArgument(null, null, ctx))
     }
     
-    override fun enterFunctionBody(ctx: AprlParser.FunctionBodyContext) {
+    override fun enterFunctionBody(ctx: FunctionBodyContext) {
         currentFunctionBodies.add(AprlFunctionBody(mutableListOf(), ctx))
     }
     
-    override fun enterVariableDeclaration(ctx: AprlParser.VariableDeclarationContext) {
+    override fun enterVariableDeclaration(ctx: VariableDeclarationContext) {
         val variableClassifier = VariableClassifier.fromNode(ctx.variableClassifier())
         currentVariableDeclarations.push(AprlVariableDeclaration(variableClassifier, null, null, null, ctx))
     }
     
-    override fun enterVariableAssignment(ctx: AprlParser.VariableAssignmentContext) {
+    override fun enterVariableAssignment(ctx: VariableAssignmentContext) {
         currentVariableAssignments.push(AprlVariableAssignment(null, null, ctx))
     }
     
-    override fun enterReturnStatement(ctx: AprlParser.ReturnStatementContext) {
+    override fun enterReturnStatement(ctx: ReturnStatementContext) {
         currentReturnStatements.push(AprlReturnStatement(null, ctx))
     }
     
-    override fun enterExpression(ctx: AprlParser.ExpressionContext) {
+    override fun enterExpression(ctx: ExpressionContext) {
         currentExpressions.push(AprlExpression(null, ctx))
     }
     
-    override fun enterDisjunctionExpression(ctx: AprlParser.DisjunctionExpressionContext) {
+    override fun enterDisjunctionExpression(ctx: DisjunctionExpressionContext) {
         currentDisjunctionExpressions.push(AprlDisjunctionExpression(null, null, null, ctx))
     }
     
-    override fun enterConjunctionExpression(ctx: AprlParser.ConjunctionExpressionContext) {
+    override fun enterConjunctionExpression(ctx: ConjunctionExpressionContext) {
         currentConjunctionExpressions.push(AprlConjunctionExpression(null, null, null, ctx))
     }
     
-    override fun enterComparisonExpression(ctx: AprlParser.ComparisonExpressionContext) {
+    override fun enterComparisonExpression(ctx: ComparisonExpressionContext) {
         currentComparisonExpressions.push(AprlComparisonExpression(null, null, null, ctx))
     }
     
-    override fun enterBitwiseExpression(ctx: AprlParser.BitwiseExpressionContext) {
-        // Initialize empty bitwise expression, assign corresponding operator if present
+    override fun enterBitwiseExpression(ctx: BitwiseExpressionContext) {
         val bitwiseOperator = ctx.bitwiseOperator()?.let {
             AprlBitwiseOperator.fromNode(it)
         }
         currentBitwiseExpressions.push(AprlBitwiseExpression(null, bitwiseOperator, null, ctx))
     }
     
-    override fun enterAdditiveExpression(ctx: AprlParser.AdditiveExpressionContext) {
-        // Initialize empty additive expression, assign corresponding operator if present
+    override fun enterAdditiveExpression(ctx: AdditiveExpressionContext) {
         val additiveOperator = ctx.additiveOperator()?.let {
             AprlAdditiveOperator.fromNode(it)
         }
         currentAdditiveExpressions.push(AprlAdditiveExpression(null, additiveOperator, null, ctx))
     }
     
-    override fun enterMultiplicativeExpression(ctx: AprlParser.MultiplicativeExpressionContext) {
-        // Initialize empty multiplicative expression, assign corresponding operator if present
+    override fun enterMultiplicativeExpression(ctx: MultiplicativeExpressionContext) {
         val multiplicativeOperator = ctx.multiplicativeOperator()?.let {
             AprlMultiplicativeOperator.fromNode(it)
         }
         currentMultiplicativeExpressions.push(AprlMultiplicativeExpression(null, multiplicativeOperator, null, ctx))
     }
     
-    override fun enterExponentialExpression(ctx: AprlParser.ExponentialExpressionContext) {
-        // Initialize empty exponential expression, assign corresponding operator if present
+    override fun enterExponentialExpression(ctx: ExponentialExpressionContext) {
         val exponentialOperator = ctx.exponentialOperator()?.let {
             AprlExponentialOperator.fromNode(it)
         }
         currentExponentialExpressions.push(AprlExponentialExpression(null, exponentialOperator, null, ctx))
     }
     
-    override fun enterAtomicExpression(ctx: AprlParser.AtomicExpressionContext) {
-        // Initialize atomic expression
+    override fun enterAtomicExpression(ctx: AtomicExpressionContext) {
         currentAtomicExpressions.push(AprlAtomicExpression(null, null, null, ctx))
     }
     
-    override fun enterType(ctx: AprlParser.TypeContext) {
+    override fun enterType(ctx: TypeContext) {
         currentTypeReferences.push(AprlTypeReference(null, ctx))
     }
     
-    override fun enterIdentifier(ctx: AprlParser.IdentifierContext) {
+    override fun enterIdentifier(ctx: IdentifierContext) {
         currentIdentifiers.push(AprlIdentifier(context = ctx))
     }
     
-    override fun exitFunctionDeclaration(ctx: AprlParser.FunctionDeclarationContext) {
-        ir.statements.add(currentFunctionDeclarations.pop())
+    override fun exitFunctionDeclaration(ctx: FunctionDeclarationContext) {
+        ir.globalStatements.add(currentFunctionDeclarations.pop())
     }
     
-    override fun exitFunctionArgument(ctx: AprlParser.FunctionArgumentContext) {
+    override fun exitFunctionArgument(ctx: FunctionArgumentContext) {
         val argument = currentFunctionArguments.pop()
-        if (currentFunctionDeclarations.isNotEmpty()) {
-            currentFunctionDeclarations.peek().arguments.add(argument)
-        }
+        currentFunctionDeclarations.peek().arguments.add(argument)
     }
     
-    override fun exitFunctionBody(ctx: AprlParser.FunctionBodyContext) {
+    override fun exitFunctionBody(ctx: FunctionBodyContext) {
         val functionBody = currentFunctionBodies.pop()
-        if (currentFunctionDeclarations.isNotEmpty()) {
-            currentFunctionDeclarations.peek().functionBody = functionBody
-        }
+        currentFunctionDeclarations.peek().functionBody = functionBody
     }
     
-    override fun exitVariableDeclaration(ctx: AprlParser.VariableDeclarationContext) {
+    override fun exitVariableDeclaration(ctx: VariableDeclarationContext) {
         val variableDeclaration = currentVariableDeclarations.pop()
-        if (currentFunctionBodies.isNotEmpty()) {
-            currentFunctionBodies.peek().statements.add(variableDeclaration)
-        } else {
-            ir.statements.add(variableDeclaration)
-        }
-    }
-    
-    override fun exitVariableAssignment(ctx: AprlParser.VariableAssignmentContext) {
-        // Take assignment off stack, it should be initialized and handled by now
-        val variableAssignment = currentVariableAssignments.pop()
-        if (currentFunctionBodies.isNotEmpty()) {
-            currentFunctionBodies.peek().statements.add(variableAssignment)
-        }
-    }
-    
-    override fun exitReturnStatement(ctx: AprlParser.ReturnStatementContext) {
-        val returnStatement = currentReturnStatements.pop()
-        if (currentFunctionBodies.isNotEmpty()) {
-            currentFunctionBodies.peek().statements.add(returnStatement)
-        }
-    }
-    
-    override fun exitExpression(ctx: AprlParser.ExpressionContext) {
-        // Take expression off the stack, it should be initialized and handled by now
-        val expression = currentExpressions.pop()
-        // Empty expressions stack => expression must be part of variable assignment
-        if (currentExpressions.isNotEmpty()) {
-            // Non-empty expressions stack => this expression was part of another expression
-            if (currentAtomicExpressions.isNotEmpty()) {
-                // Non-empty atomic expressions stack => this expression was a parenthesized expression in an atomic expression
-                currentAtomicExpressions.peek().parenthesizedExpression = expression
-            } else {
-                // Empty atomic expressions stack => this expression was a standalone parenthesized expression
-                // This means its parent evaluates to itself, therefore the parent expression can be replaced
-                currentExpressions.pop()
-                currentExpressions.push(expression)
+        when (ctx.parent) {
+            is LocalStatementContext -> {
+                currentFunctionBodies.peek().statements.add(variableDeclaration)
             }
-        } else if (currentVariableDeclarations.isNotEmpty()) {
-            currentVariableDeclarations.peek().expression = expression
-        } else if (currentVariableAssignments.isNotEmpty()) {
-            currentVariableAssignments.peek().expression = expression
-        } else if (currentReturnStatements.isNotEmpty()) {
-            currentReturnStatements.peek().expression = expression
+            is AprlFileContext -> {
+                ir.globalStatements.add(variableDeclaration)
+            }
         }
     }
     
-    override fun exitDisjunctionExpression(ctx: AprlParser.DisjunctionExpressionContext) {
-        // Take disjunction expression off the stack, it should be initialized and handled by now
+    override fun exitVariableAssignment(ctx: VariableAssignmentContext) {
+        val variableAssignment = currentVariableAssignments.pop()
+        currentFunctionBodies.peek().statements.add(variableAssignment)
+    }
+    
+    override fun exitReturnStatement(ctx: ReturnStatementContext) {
+        val returnStatement = currentReturnStatements.pop()
+        currentFunctionBodies.peek().statements.add(returnStatement)
+    }
+    
+    override fun exitExpression(ctx: ExpressionContext) {
+        val expression = currentExpressions.pop()
+        when (ctx.parent) {
+            is ParenthesizedExpressionContext -> {
+                currentAtomicExpressions.peek().parenthesizedExpression = expression
+            }
+            is VariableDeclarationContext -> {
+                currentVariableDeclarations.peek().expression = expression
+            }
+            is VariableAssignmentContext -> {
+                currentVariableAssignments.peek().expression = expression
+            }
+            is ReturnStatementContext -> {
+                currentReturnStatements.peek().expression = expression
+            }
+        }
+    }
+    
+    override fun exitDisjunctionExpression(ctx: DisjunctionExpressionContext) {
         val disjunctionExpression = currentDisjunctionExpressions.pop()
-        if (currentDisjunctionExpressions.isNotEmpty() && currentDisjunctionExpressions.size > currentAtomicExpressions.size) {
-            // Parent disjunction expression is present => set this one as its child
-            currentDisjunctionExpressions.peek().disjunctionExpression = disjunctionExpression
-        } else {
-            // No parent disjunction expression => parent is general expression
-            currentExpressions.peek().disjunctionExpression = disjunctionExpression
+        when (ctx.parent) {
+            is DisjunctionExpressionContext -> {
+                currentDisjunctionExpressions.peek().disjunctionExpression = disjunctionExpression
+            }
+            is ExpressionContext -> {
+                currentExpressions.peek().disjunctionExpression = disjunctionExpression
+            }
         }
     }
     
-    override fun exitDisjunctionOperator(ctx: AprlParser.DisjunctionOperatorContext) {
+    override fun exitDisjunctionOperator(ctx: DisjunctionOperatorContext) {
         if (currentDisjunctionExpressions.isNotEmpty()) {
             currentDisjunctionExpressions.peek().disjunctionOperator = AprlDisjunctionOperator(ctx)
         }
     }
     
-    override fun exitConjunctionExpression(ctx: AprlParser.ConjunctionExpressionContext) {
-        // Take conjunction expression off the stack, it should be initialized and handled by now
+    override fun exitConjunctionExpression(ctx: ConjunctionExpressionContext) {
         val conjunctionExpression = currentConjunctionExpressions.pop()
-        if (currentConjunctionExpressions.isNotEmpty() && currentConjunctionExpressions.size > currentAtomicExpressions.size) {
-            // Parent conjunction expression is present => set this one as its child
-            currentConjunctionExpressions.peek().conjunctionExpression = conjunctionExpression
-        } else {
-            // No parent conjunction expression => parent is disjunction expression
-            currentDisjunctionExpressions.peek().conjunctionExpression = conjunctionExpression
+        when (ctx.parent) {
+            is ConjunctionExpressionContext -> {
+                currentConjunctionExpressions.peek().conjunctionExpression = conjunctionExpression
+            }
+            is DisjunctionExpressionContext -> {
+                currentDisjunctionExpressions.peek().conjunctionExpression = conjunctionExpression
+            }
         }
     }
     
-    override fun exitConjunctionOperator(ctx: AprlParser.ConjunctionOperatorContext) {
+    override fun exitConjunctionOperator(ctx: ConjunctionOperatorContext) {
         currentConjunctionExpressions.peek().conjunctionOperator = AprlConjunctionOperator(ctx)
     }
     
-    override fun exitComparisonExpression(ctx: AprlParser.ComparisonExpressionContext) {
-        // Take comparison expression off the stack, it should be initialized and handled by now
+    override fun exitComparisonExpression(ctx: ComparisonExpressionContext) {
         val comparisonExpression = currentComparisonExpressions.pop()
-        if (currentComparisonExpressions.isNotEmpty() && currentComparisonExpressions.size > currentAtomicExpressions.size) {
-            // Parent comparison expression is present => set this one as its child
-            currentComparisonExpressions.peek().comparisonExpression = comparisonExpression
-        } else {
-            // No parent comparison expression => parent is conjunction expression
-            currentConjunctionExpressions.peek().comparisonExpression = comparisonExpression
+        when (ctx.parent) {
+            is ComparisonExpressionContext -> {
+                currentComparisonExpressions.peek().comparisonExpression = comparisonExpression
+            }
+            is ConjunctionExpressionContext -> {
+                currentConjunctionExpressions.peek().comparisonExpression = comparisonExpression
+            }
         }
     }
     
-    override fun exitComparisonOperator(ctx: AprlParser.ComparisonOperatorContext) {
-        if (currentComparisonExpressions.isNotEmpty()) {
-            currentComparisonExpressions.peek().comparisonOperator = AprlComparisonOperator.fromNode(ctx)
-        }
+    override fun exitComparisonOperator(ctx: ComparisonOperatorContext) {
+        currentComparisonExpressions.peek().comparisonOperator = AprlComparisonOperator.fromNode(ctx)
     }
     
-    override fun exitBitwiseExpression(ctx: AprlParser.BitwiseExpressionContext) {
-        // Take bitwise expression off the stack, it should be initialized and handled by now
+    override fun exitBitwiseExpression(ctx: BitwiseExpressionContext) {
         val bitwiseExpression = currentBitwiseExpressions.pop()
-        if (currentBitwiseExpressions.isNotEmpty() && currentBitwiseExpressions.size > currentAtomicExpressions.size) {
-            // Parent bitwise expression is present => set this one as its child
-            currentBitwiseExpressions.peek().bitwiseExpression = bitwiseExpression
-        } else {
-            // No parent bitwise expression => parent is comparison expression
-            currentComparisonExpressions.peek().bitwiseExpression = bitwiseExpression
+        when (ctx.parent) {
+            is BitwiseExpressionContext -> {
+                currentBitwiseExpressions.peek().bitwiseExpression = bitwiseExpression
+            }
+            is ComparisonExpressionContext -> {
+                currentComparisonExpressions.peek().bitwiseExpression = bitwiseExpression
+            }
         }
     }
     
-    override fun exitAdditiveExpression(ctx: AprlParser.AdditiveExpressionContext) {
-        // Take additive expression off the stack, it should be initialized and handled by now
+    override fun exitAdditiveExpression(ctx: AdditiveExpressionContext) {
         val additiveExpression = currentAdditiveExpressions.pop()
-        if (currentAdditiveExpressions.isNotEmpty() && currentAdditiveExpressions.size > currentAtomicExpressions.size) {
-            // Parent additive expression is present => set this one as its child
-            currentAdditiveExpressions.peek().additiveExpression = additiveExpression
-        } else {
-            // No parent additive expression => parent is bitwise expression
-            currentBitwiseExpressions.peek().additiveExpression = additiveExpression
+        when (ctx.parent) {
+            is AdditiveExpressionContext -> {
+                currentAdditiveExpressions.peek().additiveExpression = additiveExpression
+            }
+            is BitwiseExpressionContext -> {
+                currentBitwiseExpressions.peek().additiveExpression = additiveExpression
+            }
         }
     }
     
-    override fun exitMultiplicativeExpression(ctx: AprlParser.MultiplicativeExpressionContext) {
+    override fun exitMultiplicativeExpression(ctx: MultiplicativeExpressionContext) {
         val multiplicativeExpression = currentMultiplicativeExpressions.pop()
-        if (currentMultiplicativeExpressions.isNotEmpty() && currentMultiplicativeExpressions.size > currentAtomicExpressions.size) {
-            // Parent multiplicative expression is present => set this one as its child
-            currentMultiplicativeExpressions.peek().multiplicativeExpression = multiplicativeExpression
-        } else {
-            // No parent multiplicative expression => parent is additive expression
-            currentAdditiveExpressions.peek().multiplicativeExpression = multiplicativeExpression
+        when (ctx.parent) {
+            is MultiplicativeExpressionContext -> {
+                currentMultiplicativeExpressions.peek().multiplicativeExpression = multiplicativeExpression
+            }
+            is AdditiveExpressionContext -> {
+                currentAdditiveExpressions.peek().multiplicativeExpression = multiplicativeExpression
+            }
         }
     }
     
-    override fun exitExponentialExpression(ctx: AprlParser.ExponentialExpressionContext) {
+    override fun exitExponentialExpression(ctx: ExponentialExpressionContext) {
         val exponentialExpression = currentExponentialExpressions.pop()
-        if (currentExponentialExpressions.isNotEmpty() && currentExponentialExpressions.size > currentAtomicExpressions.size) {
-            // Parent exponential expression is present => set this one as its child
-            currentExponentialExpressions.peek().exponentialExpression = exponentialExpression
-        } else {
-            // No parent exponential expression => parent is bitwise expression
-            currentMultiplicativeExpressions.peek().exponentialExpression = exponentialExpression
+        when (ctx.parent) {
+            is ExponentialExpressionContext -> {
+                currentExponentialExpressions.peek().exponentialExpression = exponentialExpression
+            }
+            is MultiplicativeExpressionContext -> {
+                currentMultiplicativeExpressions.peek().exponentialExpression = exponentialExpression
+            }
         }
     }
     
-    override fun exitAtomicExpression(ctx: AprlParser.AtomicExpressionContext) {
+    override fun exitAtomicExpression(ctx: AtomicExpressionContext) {
         val atomicExpression = currentAtomicExpressions.pop()
-        if (currentExponentialExpressions.isNotEmpty()) {
-            currentExponentialExpressions.peek().atomicExpression = atomicExpression
+        when (ctx.parent) {
+            is ExponentialExpressionContext -> {
+                currentExponentialExpressions.peek().atomicExpression = atomicExpression
+            }
         }
     }
     
-    override fun exitType(ctx: AprlParser.TypeContext) {
+    override fun exitType(ctx: TypeContext) {
         val typeReference = currentTypeReferences.pop()
-        if (currentFunctionArguments.isNotEmpty()) {
-            currentFunctionArguments.peek().type = typeReference
-        } else if (currentFunctionDeclarations.isNotEmpty()) {
-            currentFunctionDeclarations.peek().returnType = typeReference
-        } else if (currentVariableDeclarations.isNotEmpty()) {
-            currentVariableDeclarations.peek().typeAnnotation = typeReference
+        when (ctx.parent) {
+            is FunctionArgumentContext -> {
+                currentFunctionArguments.peek().type = typeReference
+            }
+            is FunctionDeclarationContext -> {
+                currentFunctionDeclarations.peek().returnType = typeReference
+            }
+            is VariableDeclarationContext -> {
+                currentVariableDeclarations.peek().typeAnnotation = typeReference
+            }
         }
     }
     
-    override fun exitIdentifier(ctx: AprlParser.IdentifierContext) {
+    override fun exitIdentifier(ctx: IdentifierContext) {
         val identifier = currentIdentifiers.pop()
-        if (currentAtomicExpressions.isNotEmpty()) {
-            // Identifier as atomic expression
-            currentAtomicExpressions.peek().identifier = identifier
-        } else if (currentTypeReferences.isNotEmpty()) {
-            // Identifier as type reference
-            currentTypeReferences.peek().identifier = identifier
+        when (ctx.parent) {
+            is AtomicExpressionContext -> {
+                currentAtomicExpressions.peek().identifier = identifier
+            }
+            is TypeContext -> {
+                currentTypeReferences.peek().identifier = identifier
+            }
         }
     }
     
-    override fun exitSimpleIdentifier(ctx: AprlParser.SimpleIdentifierContext) {
-        val sizes = listOf(currentIdentifiers, currentFunctionDeclarations, currentFunctionArguments, currentVariableDeclarations, currentVariableAssignments).map { it.size }
-        if (currentIdentifiers.size >= sizes.max()) {
-            // Identifier stack not empty => simple identifier is part of parent identifier
-            currentIdentifiers.peek().identifiers.add(ctx.text)
-        } else if (currentFunctionArguments.size >= sizes.max()) {
-            currentFunctionArguments.peek().name = ctx.text
-        } else if (currentVariableDeclarations.size >= sizes.max()) {
-            currentVariableDeclarations.peek().identifier = ctx.text
-        } else if (currentVariableAssignments.size >= sizes.max()) {
-            currentVariableAssignments.peek().identifier = ctx.text
-        } else if (currentFunctionDeclarations.size >= sizes.max()) {
-            currentFunctionDeclarations.peek().name = ctx.text
+    override fun exitSimpleIdentifier(ctx: SimpleIdentifierContext) {
+        when (ctx.parent) {
+            is IdentifierContext -> {
+                currentIdentifiers.peek().identifiers.add(ctx.text)
+            }
+            is FunctionArgumentContext -> {
+                currentFunctionArguments.peek().name = ctx.text
+            }
+            is VariableDeclarationContext -> {
+                currentVariableDeclarations.peek().identifier = ctx.text
+            }
+            is VariableAssignmentContext -> {
+                currentVariableAssignments.peek().identifier = ctx.text
+            }
+            is FunctionDeclarationContext -> {
+                currentFunctionDeclarations.peek().name = ctx.text
+            }
         }
     }
     
-    override fun exitLiteral(ctx: AprlParser.LiteralContext) {
+    override fun exitLiteral(ctx: LiteralContext) {
         val literal = ctx.IntegerLiteral()?.text?.toLong()?.let { AprlIntegerLiteral(it, ctx) }
             ?: ctx.FloatLiteral()?.text?.toDouble()?.let { AprlFloatLiteral(it, ctx) }
             ?: ctx.booleanLiteral()?.text?.toBooleanStrictOrNull()?.let { AprlBooleanLiteral(it, ctx) }

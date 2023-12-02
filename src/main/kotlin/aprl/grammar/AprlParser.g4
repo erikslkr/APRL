@@ -40,8 +40,7 @@ functionBody
     : LCURLY NL* localStatement? (NL+ localStatement)* NL* RCURLY;
 
 expression
-    : parenthesizedExpression
-    | disjunctionExpression;
+    : disjunctionExpression;
 
 parenthesizedExpression
     : LPAREN expression RPAREN;

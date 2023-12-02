@@ -2,9 +2,9 @@ package aprl.ir
 
 data class AprlIR(
     var name: String? = null,
-    val statements: MutableList<AprlGlobalStatement> = mutableListOf()
+    val globalStatements: MutableList<AprlGlobalStatement> = mutableListOf()
 ) {
     override fun toString(): String {
-        return statements.joinToString("\r\n")
+        return globalStatements.joinToString("\r\n")
     }
 }

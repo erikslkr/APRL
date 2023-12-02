@@ -109,7 +109,7 @@ class ExpressionTree(
                             }
                         }
                     }
-                    is AprlAdditiveOperator -> {
+                    is AprlAdditiveOperator.AprlPlusOperator -> {
                         if (constant.value == 0L || constant.value == 0.0) {
                             cauterize(nonConstant)
                         }
@@ -159,6 +159,11 @@ class ExpressionTree(
                                 0.0, 0L -> {
                                     ERROR("Division by zero", content!!.context.getParent().positionRange)
                                 }
+                            }
+                        }
+                        is AprlAdditiveOperator.AprlMinusOperator -> {
+                            if (rhs.value == 0 || rhs.value == 0.0) {
+                                cauterize(firstChild!! as ExpressionTree)
                             }
                         }
                         is AprlMultiplicativeOperator.AprlDivideOperator -> {
