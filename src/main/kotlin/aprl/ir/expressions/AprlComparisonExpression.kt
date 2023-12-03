@@ -1,12 +1,9 @@
 package aprl.ir.expressions
 
 import aprl.grammar.AprlParser.ComparisonExpressionContext
-import aprl.grammar.AprlParser.ComparisonOperatorContext
 import aprl.ir.AprlNode
 import aprl.ir.operators.AprlComparisonOperator
-import aprl.ir.operators.AprlOperator
 import aprl.util.ExpressionTree
-import java.lang.IllegalStateException
 
 data class AprlComparisonExpression(
     var bitwiseExpression: AprlBitwiseExpression?,

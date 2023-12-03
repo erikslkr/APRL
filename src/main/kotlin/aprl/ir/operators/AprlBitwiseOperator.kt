@@ -5,7 +5,7 @@ import aprl.grammar.AprlParser.BitwiseOperatorContext
 sealed class AprlBitwiseOperator(
     override val functionName: String,
     override val operatorSymbol: String
-) : AprlOverloadableOperator<BitwiseOperatorContext> {
+) : AprlOverloadableBinaryOperator<BitwiseOperatorContext> {
     
     class AprlAndOperator(
         override val context: BitwiseOperatorContext

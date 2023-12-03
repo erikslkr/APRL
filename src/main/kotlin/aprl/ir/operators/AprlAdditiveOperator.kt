@@ -5,7 +5,7 @@ import aprl.grammar.AprlParser.AdditiveOperatorContext
 sealed class AprlAdditiveOperator(
     override val functionName: String,
     override val operatorSymbol: String
-) : AprlOverloadableOperator<AdditiveOperatorContext> {
+) : AprlOverloadableBinaryOperator<AdditiveOperatorContext> {
     
     class AprlPlusOperator(
         override val context: AdditiveOperatorContext

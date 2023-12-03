@@ -30,6 +30,7 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     private val currentBitwiseExpressions = Stack<AprlBitwiseExpression>()
     private val currentAdditiveExpressions = Stack<AprlAdditiveExpression>()
     private val currentMultiplicativeExpressions = Stack<AprlMultiplicativeExpression>()
+    private val currentUnaryPrefixedExpressions = Stack<AprlUnaryPrefixedExpression>()
     private val currentExponentialExpressions = Stack<AprlExponentialExpression>()
     private val currentAtomicExpressions = Stack<AprlAtomicExpression>()
     
@@ -97,6 +98,13 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
             AprlMultiplicativeOperator.fromNode(it)
         }
         currentMultiplicativeExpressions.push(AprlMultiplicativeExpression(null, multiplicativeOperator, null, ctx))
+    }
+    
+    override fun enterUnaryPrefixedExpression(ctx: UnaryPrefixedExpressionContext) {
+        val unaryPrefix = ctx.unaryPrefix()?.let {
+            AprlUnaryPrefixOperator.fromNode(it)
+        }
+        currentUnaryPrefixedExpressions.push(AprlUnaryPrefixedExpression(unaryPrefix, null, ctx))
     }
     
     override fun enterExponentialExpression(ctx: ExponentialExpressionContext) {
@@ -258,14 +266,23 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
         }
     }
     
+    override fun exitUnaryPrefixedExpression(ctx: UnaryPrefixedExpressionContext) {
+        val unaryPrefixedExpression = currentUnaryPrefixedExpressions.pop()
+        when (ctx.parent) {
+            is MultiplicativeExpressionContext -> {
+                currentMultiplicativeExpressions.peek().unaryPrefixedExpression = unaryPrefixedExpression
+            }
+        }
+    }
+    
     override fun exitExponentialExpression(ctx: ExponentialExpressionContext) {
         val exponentialExpression = currentExponentialExpressions.pop()
         when (ctx.parent) {
             is ExponentialExpressionContext -> {
                 currentExponentialExpressions.peek().exponentialExpression = exponentialExpression
             }
-            is MultiplicativeExpressionContext -> {
-                currentMultiplicativeExpressions.peek().exponentialExpression = exponentialExpression
+            is UnaryPrefixedExpressionContext -> {
+                currentUnaryPrefixedExpressions.peek().exponentialExpression = exponentialExpression
             }
         }
     }

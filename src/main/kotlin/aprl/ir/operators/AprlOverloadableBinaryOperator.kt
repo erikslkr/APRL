@@ -3,7 +3,7 @@ package aprl.ir.operators
 import aprl.lang.Wrapper
 import org.antlr.v4.runtime.ParserRuleContext
 
-interface AprlOverloadableOperator<T: ParserRuleContext> : AprlOperator<T> {
+interface AprlOverloadableBinaryOperator<T: ParserRuleContext> : AprlOperator<T> {
     val functionName: String
     
     fun applyOrNull(lhs: Any, rhs: Any): Any? {

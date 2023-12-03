@@ -67,33 +67,69 @@ class ExpressionTree(
     val childCount: Int
         get() = ((firstChild as? ExpressionTree)?.childCount ?: 0) + ((secondChild as? ExpressionTree)?.childCount ?: 0) + (if (content == null) 0 else 1)
     
+    private fun contextToString(): String {
+        var current = this
+        var depth = 0
+        while (current.content == null) {
+            current = current.firstChildExpressionTree ?: current.secondChildExpressionTree ?: throw InternalError("Null node")
+            depth++
+        }
+        var context = current.content!!.context
+        repeat(depth) { _ ->
+            context = context.getParent()
+        }
+        var contextString = context.text
+        val operatorSymbols = listOf("&&", "&", "||", "|", "^", ">>>", ">>", "<<", "**", "*", "\\", "/", "%", "+", "-")
+        for (it in operatorSymbols) {
+            // add spacing between operands and operators
+            contextString = contextString.replace(it, " $it ")
+        }
+        return contextString
+    }
+    
     override fun toString(): String {
-        return if (content == null) {
-            if (firstChild != null) {
-                "$firstChild"
-            } else if (secondChild != null) {
-                "$secondChild"
+        val contextString = contextToString()
+        if (contextString.isEmpty()) {
+            return if (content == null) {
+                if (firstChild != null) {
+                    "$firstChild"
+                } else if (secondChild != null) {
+                    "$secondChild"
+                } else {
+                    "<UNKNOWN EXPRESSION>"
+                }
             } else {
-                "<UNKNOWN EXPRESSION>"
-            }
-        } else {
-            if (firstChild != null && secondChild != null) {
-                "$firstChild $content $secondChild"
-            } else {
-                "$content"
+                if (firstChild != null && secondChild != null) {
+                    "$firstChild $content $secondChild"
+                } else if (firstChild != null) {
+                    "$content$firstChild"
+                } else {
+                    "$content"
+                }
             }
         }
+        return contextString
     }
     
     fun optimize() {
         // TODO: optimize and type-check: disjunctions, conjunctions and comparisons
         (firstChild as? ExpressionTree)?.optimize()
         (secondChild as? ExpressionTree)?.optimize()
-        if (content is AprlOverloadableOperator) {
+        
+        if (content == null) {
+            if (firstChild == null) {
+                cauterize(secondChild!! as ExpressionTree)
+            } else if (secondChild == null) {
+                cauterize(firstChild!! as ExpressionTree)
+            }
+            return
+        }
+        
+        val syntheticContext = content?.context?.let { LiteralContext(it.getParent(), it.invokingState) } ?: return
+        
+        if (content is AprlOverloadableBinaryOperator) {
             val lhs = firstChild?.content
             val rhs = secondChild?.content
-            
-            val syntheticContext = content?.context?.let { LiteralContext(it.getParent(), it.invokingState) } ?: return
             
             fun optimizeCommutativeCncExpression(constant: AprlLiteral<*>, nonConstant: ExpressionTree) {
                 when (content) {
@@ -136,7 +172,7 @@ class ExpressionTree(
                     val lhsWrapped = Wrapper.wrap(lhs.value)
                     val rhsWrapped = Wrapper.wrap(rhs.value)
                     
-                    val literal = when (val evaluated = (content as AprlOverloadableOperator).applyOrNull(lhsWrapped, rhsWrapped)) {
+                    val literal = when (val evaluated = (content as AprlOverloadableBinaryOperator).applyOrNull(lhsWrapped, rhsWrapped)) {
                         is Boolean -> AprlBooleanLiteral(evaluated, syntheticContext)
                         is Long -> AprlIntegerLiteral(evaluated, syntheticContext)
                         is Double -> AprlFloatLiteral(evaluated, syntheticContext)
@@ -194,11 +230,19 @@ class ExpressionTree(
                     optimizeCommutativeCncExpression(lhs, secondChild!! as ExpressionTree)
                 }
             }
-        } else if (content == null) {
-            if (firstChild == null) {
-                cauterize(secondChild!! as ExpressionTree)
-            } else if (secondChild == null) {
-                cauterize(firstChild!! as ExpressionTree)
+        } else if (content is AprlUnaryPrefixOperator) {
+            val operand = firstChild?.content ?: throw InternalError("Compiler expected operand on prefixed expression, but found none")
+            if (operand is AprlLiteral<*>) {
+                val wrappedOperand = Wrapper.wrap(operand.value)
+                val literal = when (val evaluated = (content as AprlUnaryPrefixOperator).applyOrNull(wrappedOperand)) {
+                    is Boolean -> AprlBooleanLiteral(evaluated, syntheticContext)
+                    is Long -> AprlIntegerLiteral(evaluated, syntheticContext)
+                    is Double -> AprlFloatLiteral(evaluated, syntheticContext)
+                    is Char -> AprlCharLiteral(evaluated, syntheticContext)
+                    is String -> AprlStringLiteral(evaluated, syntheticContext)
+                    else -> return
+                }
+                cauterize(literal)
             }
         }
     }

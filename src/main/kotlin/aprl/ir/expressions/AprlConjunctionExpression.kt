@@ -3,7 +3,6 @@ package aprl.ir.expressions
 import aprl.grammar.AprlParser.ConjunctionExpressionContext
 import aprl.ir.AprlNode
 import aprl.ir.operators.AprlConjunctionOperator
-import aprl.ir.operators.AprlOperator
 import aprl.util.ExpressionTree
 
 data class AprlConjunctionExpression(

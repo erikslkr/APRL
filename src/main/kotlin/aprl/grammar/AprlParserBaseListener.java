@@ -317,6 +317,30 @@ public class AprlParserBaseListener implements AprlParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterUnaryPrefixedExpression(AprlParser.UnaryPrefixedExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitUnaryPrefixedExpression(AprlParser.UnaryPrefixedExpressionContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterUnaryPrefix(AprlParser.UnaryPrefixContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitUnaryPrefix(AprlParser.UnaryPrefixContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterExponentialExpression(AprlParser.ExponentialExpressionContext ctx) { }
 	/**
 	 * {@inheritDoc}

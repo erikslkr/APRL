@@ -1,10 +1,8 @@
 package aprl.ir.expressions
 
-import aprl.grammar.AprlParser
 import aprl.grammar.AprlParser.BitwiseExpressionContext
 import aprl.ir.AprlNode
 import aprl.ir.operators.AprlBitwiseOperator
-import aprl.ir.operators.AprlOverloadableOperator
 import aprl.util.ExpressionTree
 
 data class AprlBitwiseExpression(

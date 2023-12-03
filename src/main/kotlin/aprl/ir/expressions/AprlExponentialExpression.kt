@@ -1,10 +1,8 @@
 package aprl.ir.expressions
 
-import aprl.grammar.AprlParser
 import aprl.grammar.AprlParser.ExponentialExpressionContext
 import aprl.ir.AprlNode
 import aprl.ir.operators.AprlExponentialOperator
-import aprl.ir.operators.AprlOverloadableOperator
 import aprl.util.ExpressionTree
 
 data class AprlExponentialExpression(

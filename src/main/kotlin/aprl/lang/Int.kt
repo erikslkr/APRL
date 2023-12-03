@@ -22,6 +22,24 @@ data class Int(
     
     @Verbatim
     @OperatorFunction
+    fun __not__(): Int {
+        return Int(value.inv())
+    }
+    
+    @Verbatim
+    @OperatorFunction
+    fun __negate__(): Int {
+        return Int(-value)
+    }
+    
+    @Verbatim
+    @OperatorFunction
+    fun __inverse__(): Int {
+        return Int(value.inv())
+    }
+    
+    @Verbatim
+    @OperatorFunction
     fun __plus__(other: Int): Int {
         return Int(value + other.value)
     }

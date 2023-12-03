@@ -8,6 +8,18 @@ data class Boolean(
     
     @Verbatim
     @OperatorFunction
+    fun __not__(): Boolean {
+        return Boolean(!value)
+    }
+    
+    @Verbatim
+    @OperatorFunction
+    fun __inverse__(): Boolean {
+        return Boolean(!value)
+    }
+    
+    @Verbatim
+    @OperatorFunction
     fun __and__(other: Boolean): Boolean {
         return Boolean(value && other.value)
     }

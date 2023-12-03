@@ -258,6 +258,26 @@ public interface AprlParserListener extends ParseTreeListener {
 	 */
 	void exitMultiplicativeOperator(AprlParser.MultiplicativeOperatorContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link AprlParser#unaryPrefixedExpression}.
+	 * @param ctx the parse tree
+	 */
+	void enterUnaryPrefixedExpression(AprlParser.UnaryPrefixedExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#unaryPrefixedExpression}.
+	 * @param ctx the parse tree
+	 */
+	void exitUnaryPrefixedExpression(AprlParser.UnaryPrefixedExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#unaryPrefix}.
+	 * @param ctx the parse tree
+	 */
+	void enterUnaryPrefix(AprlParser.UnaryPrefixContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#unaryPrefix}.
+	 * @param ctx the parse tree
+	 */
+	void exitUnaryPrefix(AprlParser.UnaryPrefixContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link AprlParser#exponentialExpression}.
 	 * @param ctx the parse tree
 	 */

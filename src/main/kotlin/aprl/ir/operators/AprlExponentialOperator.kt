@@ -5,7 +5,7 @@ import aprl.grammar.AprlParser.ExponentialOperatorContext
 sealed class AprlExponentialOperator(
     override val functionName: String,
     override val operatorSymbol: String
-) : AprlOverloadableOperator<ExponentialOperatorContext> {
+) : AprlOverloadableBinaryOperator<ExponentialOperatorContext> {
     
     class AprlPowerOperator(
         override val context: ExponentialOperatorContext

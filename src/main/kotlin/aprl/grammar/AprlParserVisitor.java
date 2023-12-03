@@ -161,6 +161,18 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitMultiplicativeOperator(AprlParser.MultiplicativeOperatorContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link AprlParser#unaryPrefixedExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitUnaryPrefixedExpression(AprlParser.UnaryPrefixedExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#unaryPrefix}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitUnaryPrefix(AprlParser.UnaryPrefixContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link AprlParser#exponentialExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

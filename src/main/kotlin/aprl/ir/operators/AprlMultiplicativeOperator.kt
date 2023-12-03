@@ -5,7 +5,7 @@ import aprl.grammar.AprlParser.MultiplicativeOperatorContext
 sealed class AprlMultiplicativeOperator(
     override val functionName: String,
     override val operatorSymbol: String
-) : AprlOverloadableOperator<MultiplicativeOperatorContext> {
+) : AprlOverloadableBinaryOperator<MultiplicativeOperatorContext> {
     
     class AprlMultiplyOperator(
         override val context: MultiplicativeOperatorContext

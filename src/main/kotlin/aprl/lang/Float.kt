@@ -22,6 +22,12 @@ data class Float(
     
     @Verbatim
     @OperatorFunction
+    fun __negate__(): Float {
+        return Float(-value)
+    }
+    
+    @Verbatim
+    @OperatorFunction
     fun __plus__(other: Float): Float {
         return Float(value + other.value)
     }

@@ -1,6 +1,9 @@
 lexer grammar AprlLexer;
 
+LineComment: '#' ~[\r\n]* -> channel(HIDDEN);
+
 WS: [\u0020\u0009\u000C] -> skip;
+NL: '\r'? '\n';
 
 VAR: 'var';
 VAL: 'val';
@@ -30,6 +33,13 @@ PERIOD: '.';
 COMMA: ',';
 COLON: ':';
 
+EXCL: '!';
+TILDE: '~';
+
+RIGHT_ARROW: '->';
+
+HASH: '#';
+
 PLUS: '+';
 MINUS: '-';
 ASTERISK: '*';
@@ -37,8 +47,6 @@ DOUBLE_ASTERISK: '**';
 SLASH: '/';
 BACKSLASH: '\\';
 PERCENT: '%';
-
-RIGHT_ARROW: '->';
 
 AND: '&';
 DOUBLE_AND: '&&';
@@ -48,8 +56,6 @@ XOR: '^';
 SHL: '<<';
 SHR: '>>';
 USHR: '>>>';
-
-NL: '\r'? '\n';
 
 TRUE: 'true';
 FALSE: 'false';

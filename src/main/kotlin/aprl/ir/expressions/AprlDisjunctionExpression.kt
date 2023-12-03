@@ -3,7 +3,6 @@ package aprl.ir.expressions
 import aprl.grammar.AprlParser.DisjunctionExpressionContext
 import aprl.ir.AprlNode
 import aprl.ir.operators.AprlDisjunctionOperator
-import aprl.ir.operators.AprlOperator
 import aprl.util.ExpressionTree
 
 data class AprlDisjunctionExpression(

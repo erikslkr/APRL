@@ -94,14 +94,22 @@ additiveOperator
     | MINUS;
 
 multiplicativeExpression
-    : multiplicativeExpression multiplicativeOperator exponentialExpression
-    | exponentialExpression;
+    : multiplicativeExpression multiplicativeOperator unaryPrefixedExpression
+    | unaryPrefixedExpression;
 
 multiplicativeOperator
     : ASTERISK
     | SLASH
     | BACKSLASH
     | PERCENT;
+
+unaryPrefixedExpression
+    : unaryPrefix? exponentialExpression;
+
+unaryPrefix
+    : EXCL
+    | TILDE
+    | MINUS;
 
 exponentialExpression
     : exponentialExpression exponentialOperator atomicExpression

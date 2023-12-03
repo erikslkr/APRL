@@ -269,27 +269,29 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
         types.add(aprl.lang.Boolean::class.java)
     }
     
-    private fun visitOverloadableExpression(
+    private fun visitOverloadableBinaryExpression(
         expression: ExpressionTree,
-        operatorClass: Class<out AprlOverloadableOperator<*>>,
+        operatorClass: Class<out AprlOverloadableBinaryOperator<*>>,
         inferiorExpressionHandler: (ExpressionTree) -> Unit,
         verbatim: Boolean
     ) {
-        val operator = (expression.content as? AprlOverloadableOperator) ?: return inferiorExpressionHandler(expression)
+        val operator = (expression.content as? AprlOverloadableBinaryOperator) ?: return inferiorExpressionHandler(expression)
         if (!operatorClass.isAssignableFrom(operator.javaClass)) {
             return inferiorExpressionHandler(expression)
         }
         if (expression.firstChild == null || expression.secondChild == null) {
-            (expression.firstChild as? ExpressionTree)?.also { visitOverloadableExpression(it, operatorClass, inferiorExpressionHandler, verbatim) }
-            (expression.secondChild as? ExpressionTree)?.also { visitOverloadableExpression(it, operatorClass, inferiorExpressionHandler, verbatim) }
+            (expression.firstChild as? ExpressionTree)?.also { visitOverloadableBinaryExpression(it, operatorClass, inferiorExpressionHandler, verbatim) }
+            (expression.secondChild as? ExpressionTree)?.also { visitOverloadableBinaryExpression(it, operatorClass, inferiorExpressionHandler, verbatim) }
         } else {
-            visitOverloadableExpression(expression.firstChild as ExpressionTree, operatorClass, inferiorExpressionHandler, verbatim)
+            visitOverloadableBinaryExpression(expression.firstChild as ExpressionTree, operatorClass, inferiorExpressionHandler, verbatim)
             var verbatimType: Class<*>? = null
+            
             @Suppress("FunctionName")
             fun NO_VERBATIM() {
                 WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
                 verbatimType = null
             }
+            
             if (verbatim) {
                 if (types.last().methods.none { it.name == "component1" && it.parameterTypes.isEmpty() }) {
                     WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
@@ -305,7 +307,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
                     }
                 }
             }
-            visitOverloadableExpression(expression.secondChild as ExpressionTree, operatorClass, inferiorExpressionHandler, verbatim)
+            visitOverloadableBinaryExpression(expression.secondChild as ExpressionTree, operatorClass, inferiorExpressionHandler, verbatim)
             if (verbatim && verbatimType != null) {
                 if (types.last().methods.none { it.name == "component1" && it.parameterTypes.isEmpty() }) {
                     NO_VERBATIM()
@@ -455,7 +457,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
     }
     
     private fun visitBitwiseExpression(expression: ExpressionTree) {
-        visitOverloadableExpression(
+        visitOverloadableBinaryExpression(
             expression = expression,
             operatorClass = AprlBitwiseOperator::class.java,
             inferiorExpressionHandler = { operand ->
@@ -479,7 +481,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
     }
     
     private fun visitAdditiveExpression(expression: ExpressionTree) {
-        visitOverloadableExpression(
+        visitOverloadableBinaryExpression(
             expression = expression,
             operatorClass = AprlAdditiveOperator::class.java,
             inferiorExpressionHandler = { operand ->
@@ -506,7 +508,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
     }
     
     private fun visitMultiplicativeExpression(expression: ExpressionTree) {
-        visitOverloadableExpression(
+        visitOverloadableBinaryExpression(
             expression = expression,
             operatorClass = AprlMultiplicativeOperator::class.java,
             inferiorExpressionHandler = { operand ->
@@ -527,7 +529,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
                         visitAdditiveExpression(operand)
                     }
                     else -> {
-                        visitExponentialExpression(operand)
+                        visitUnaryPrefixedExpression(operand)
                     }
                 }
             },
@@ -535,8 +537,47 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
         )
     }
     
+    private fun visitUnaryPrefixedExpression(expressionTree: ExpressionTree) {
+        val operand = expressionTree.firstChild as? ExpressionTree ?: expressionTree
+        when (operand.content) {
+            is AprlDisjunctionOperator -> {
+                visitDisjunction(operand)
+            }
+            is AprlConjunctionOperator -> {
+                visitConjunction(operand)
+            }
+            is AprlComparisonOperator -> {
+                visitComparison(operand)
+            }
+            is AprlBitwiseOperator -> {
+                visitBitwiseExpression(operand)
+            }
+            is AprlAdditiveOperator -> {
+                visitAdditiveExpression(operand)
+            }
+            is AprlMultiplicativeOperator -> {
+                visitMultiplicativeExpression(operand)
+            }
+            else -> {
+                visitExponentialExpression(operand)
+            }
+        }
+        val operator = expressionTree.content as? AprlUnaryPrefixOperator ?: return
+        val operatorFunction = types.last().methods.singleOrNull { it.name == operator.functionName && it.parameterTypes.isEmpty() }
+        if (operatorFunction != null) {
+            val returnType = Type.getType(operatorFunction.returnType).descriptor
+            visitMethodInsn(INVOKEVIRTUAL, types.last().name.replace(".", "/"), operator.functionName, "()$returnType", false)
+            // remove operand type
+            types.pollLast()
+            // add return type
+            types.add(operatorFunction.returnType)
+        } else {
+            ERROR("Operation '${operator.operatorSymbol}' not defined on type '${types.last().simpleName}'", operator.context.positionRange)
+        }
+    }
+    
     private fun visitExponentialExpression(expression: ExpressionTree) {
-        visitOverloadableExpression(
+        visitOverloadableBinaryExpression(
             expression = expression,
             operatorClass = AprlExponentialOperator::class.java,
             inferiorExpressionHandler = { operand ->
@@ -558,6 +599,9 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
                     }
                     is AprlMultiplicativeOperator -> {
                         visitMultiplicativeExpression(operand)
+                    }
+                    is AprlUnaryPrefixOperator -> {
+                        visitUnaryPrefixedExpression(operand)
                     }
                     else -> {
                         visitAtomicExpression(operand)
@@ -587,6 +631,9 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
             }
             is AprlMultiplicativeOperator -> {
                 visitMultiplicativeExpression(expression)
+            }
+            is AprlUnaryPrefixOperator -> {
+                visitUnaryPrefixedExpression(expression)
             }
             is AprlExponentialOperator -> {
                 visitExponentialExpression(expression)
@@ -701,7 +748,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
         visitExpressionOrDefaultValue(declaration.expression, variableType ?: Any::class.java)
         variableType = variableType ?: types.lastOrNull() ?: return
         val index: Int
-        if (declaration.identifier!! in localVariables.keys) {
+        if (declaration.identifier in localVariables.keys) {
             index = localVariables[declaration.identifier]!!.index
             val originalDeclaration = localVariables[declaration.identifier]!!.originalDeclaration
             val errorMessage = run {
