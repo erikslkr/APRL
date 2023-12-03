@@ -17,7 +17,7 @@ sealed class AprlMultiplicativeOperator(
     
     class AprlFloordivOperator(
         override val context: MultiplicativeOperatorContext
-    ) : AprlMultiplicativeOperator("__floordiv__", "\\")
+    ) : AprlMultiplicativeOperator("__floordiv__", "//")
     
     class AprlModuloOperator(
         override val context: MultiplicativeOperatorContext
@@ -36,7 +36,7 @@ sealed class AprlMultiplicativeOperator(
                 ctx.SLASH() != null -> {
                     AprlDivideOperator(ctx)
                 }
-                ctx.BACKSLASH() != null -> {
+                ctx.DOUBLE_SLASH() != null -> {
                     AprlFloordivOperator(ctx)
                 }
                 ctx.PERCENT() != null -> {

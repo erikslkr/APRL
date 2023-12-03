@@ -100,7 +100,7 @@ multiplicativeExpression
 multiplicativeOperator
     : ASTERISK
     | SLASH
-    | BACKSLASH
+    | DOUBLE_SLASH
     | PERCENT;
 
 unaryPrefixedExpression

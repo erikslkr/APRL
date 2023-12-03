@@ -22,9 +22,10 @@ public class AprlParser extends Parser {
 		RANGLE=14, LANGLE_EQUAL=15, RANGLE_EQUAL=16, LPAREN=17, RPAREN=18, LSQUARE=19, 
 		RSQUARE=20, LCURLY=21, RCURLY=22, PERIOD=23, COMMA=24, COLON=25, EXCL=26, 
 		TILDE=27, RIGHT_ARROW=28, HASH=29, PLUS=30, MINUS=31, ASTERISK=32, DOUBLE_ASTERISK=33, 
-		SLASH=34, BACKSLASH=35, PERCENT=36, AND=37, DOUBLE_AND=38, OR=39, DOUBLE_OR=40, 
-		XOR=41, SHL=42, SHR=43, USHR=44, TRUE=45, FALSE=46, IntegerLiteral=47, 
-		FloatLiteral=48, CharLiteral=49, StringLiteral=50, Identifier=51;
+		SLASH=34, DOUBLE_SLASH=35, BACKSLASH=36, PERCENT=37, AND=38, DOUBLE_AND=39, 
+		OR=40, DOUBLE_OR=41, XOR=42, SHL=43, SHR=44, USHR=45, TRUE=46, FALSE=47, 
+		IntegerLiteral=48, FloatLiteral=49, CharLiteral=50, StringLiteral=51, 
+		Identifier=52;
 	public static final int
 		RULE_aprlFile = 0, RULE_globalStatement = 1, RULE_localStatement = 2, 
 		RULE_variableDeclaration = 3, RULE_variableClassifier = 4, RULE_variableAssignment = 5, 
@@ -59,8 +60,9 @@ public class AprlParser extends Parser {
 			null, null, null, null, "'var'", "'val'", "'function'", "'return'", "'='", 
 			"'=='", "'==='", "'!='", "'!=='", "'<'", "'>'", "'<='", "'>='", "'('", 
 			"')'", "'['", "']'", "'{'", "'}'", "'.'", "','", "':'", "'!'", "'~'", 
-			"'->'", "'#'", "'+'", "'-'", "'*'", "'**'", "'/'", "'\\'", "'%'", "'&'", 
-			"'&&'", "'|'", "'||'", "'^'", "'<<'", "'>>'", "'>>>'", "'true'", "'false'"
+			"'->'", "'#'", "'+'", "'-'", "'*'", "'**'", "'/'", "'//'", "'\\'", "'%'", 
+			"'&'", "'&&'", "'|'", "'||'", "'^'", "'<<'", "'>>'", "'>>>'", "'true'", 
+			"'false'"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
@@ -71,9 +73,10 @@ public class AprlParser extends Parser {
 			"LANGLE", "RANGLE", "LANGLE_EQUAL", "RANGLE_EQUAL", "LPAREN", "RPAREN", 
 			"LSQUARE", "RSQUARE", "LCURLY", "RCURLY", "PERIOD", "COMMA", "COLON", 
 			"EXCL", "TILDE", "RIGHT_ARROW", "HASH", "PLUS", "MINUS", "ASTERISK", 
-			"DOUBLE_ASTERISK", "SLASH", "BACKSLASH", "PERCENT", "AND", "DOUBLE_AND", 
-			"OR", "DOUBLE_OR", "XOR", "SHL", "SHR", "USHR", "TRUE", "FALSE", "IntegerLiteral", 
-			"FloatLiteral", "CharLiteral", "StringLiteral", "Identifier"
+			"DOUBLE_ASTERISK", "SLASH", "DOUBLE_SLASH", "BACKSLASH", "PERCENT", "AND", 
+			"DOUBLE_AND", "OR", "DOUBLE_OR", "XOR", "SHL", "SHR", "USHR", "TRUE", 
+			"FALSE", "IntegerLiteral", "FloatLiteral", "CharLiteral", "StringLiteral", 
+			"Identifier"
 		};
 	}
 	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
@@ -617,7 +620,7 @@ public class AprlParser extends Parser {
 			setState(128);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 4468417604222976L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 8936832859504640L) != 0)) {
 				{
 				setState(127);
 				expression();
@@ -918,7 +921,7 @@ public class AprlParser extends Parser {
 			setState(165);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 2251799813685424L) != 0)) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 4503599627370672L) != 0)) {
 				{
 				setState(164);
 				localStatement();
@@ -1552,7 +1555,7 @@ public class AprlParser extends Parser {
 			{
 			setState(231);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 33672543600640L) != 0)) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 67345087201280L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -1804,7 +1807,7 @@ public class AprlParser extends Parser {
 	public static class MultiplicativeOperatorContext extends ParserRuleContext {
 		public TerminalNode ASTERISK() { return getToken(AprlParser.ASTERISK, 0); }
 		public TerminalNode SLASH() { return getToken(AprlParser.SLASH, 0); }
-		public TerminalNode BACKSLASH() { return getToken(AprlParser.BACKSLASH, 0); }
+		public TerminalNode DOUBLE_SLASH() { return getToken(AprlParser.DOUBLE_SLASH, 0); }
 		public TerminalNode PERCENT() { return getToken(AprlParser.PERCENT, 0); }
 		public MultiplicativeOperatorContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
@@ -1834,7 +1837,7 @@ public class AprlParser extends Parser {
 			{
 			setState(259);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 124554051584L) != 0)) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 193273528320L) != 0)) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -2550,7 +2553,7 @@ public class AprlParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\u0004\u00013\u0141\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001\u0002"+
+		"\u0004\u00014\u0141\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001\u0002"+
 		"\u0002\u0007\u0002\u0002\u0003\u0007\u0003\u0002\u0004\u0007\u0004\u0002"+
 		"\u0005\u0007\u0005\u0002\u0006\u0007\u0006\u0002\u0007\u0007\u0007\u0002"+
 		"\b\u0007\b\u0002\t\u0007\t\u0002\n\u0007\n\u0002\u000b\u0007\u000b\u0002"+
@@ -2599,44 +2602,44 @@ public class AprlParser extends Parser {
 		"\n!\f!\u0137\t!\u0001!\u0005!\u013a\b!\n!\f!\u013d\t!\u0001\"\u0001\""+
 		"\u0001\"\u0000\u0004&*.6#\u0000\u0002\u0004\u0006\b\n\f\u000e\u0010\u0012"+
 		"\u0014\u0016\u0018\u001a\u001c\u001e \"$&(*,.02468:<>@BD\u0000\u0007\u0001"+
-		"\u0000\u0004\u0005\u0001\u0000\t\u0010\u0003\u0000%%\'\'),\u0001\u0000"+
-		"\u001e\u001f\u0002\u0000  \"$\u0002\u0000\u001a\u001b\u001f\u001f\u0001"+
-		"\u0000-.\u0141\u0000I\u0001\u0000\u0000\u0000\u0002b\u0001\u0000\u0000"+
-		"\u0000\u0004g\u0001\u0000\u0000\u0000\u0006v\u0001\u0000\u0000\u0000\b"+
-		"x\u0001\u0000\u0000\u0000\nz\u0001\u0000\u0000\u0000\f~\u0001\u0000\u0000"+
-		"\u0000\u000e\u0082\u0001\u0000\u0000\u0000\u0010\u008c\u0001\u0000\u0000"+
-		"\u0000\u0012\u0099\u0001\u0000\u0000\u0000\u0014\u009d\u0001\u0000\u0000"+
-		"\u0000\u0016\u00ba\u0001\u0000\u0000\u0000\u0018\u00bc\u0001\u0000\u0000"+
-		"\u0000\u001a\u00c5\u0001\u0000\u0000\u0000\u001c\u00c7\u0001\u0000\u0000"+
-		"\u0000\u001e\u00ce\u0001\u0000\u0000\u0000 \u00d0\u0001\u0000\u0000\u0000"+
-		"\"\u00d7\u0001\u0000\u0000\u0000$\u00d9\u0001\u0000\u0000\u0000&\u00db"+
-		"\u0001\u0000\u0000\u0000(\u00e7\u0001\u0000\u0000\u0000*\u00e9\u0001\u0000"+
-		"\u0000\u0000,\u00f5\u0001\u0000\u0000\u0000.\u00f7\u0001\u0000\u0000\u0000"+
-		"0\u0103\u0001\u0000\u0000\u00002\u0106\u0001\u0000\u0000\u00004\u010a"+
-		"\u0001\u0000\u0000\u00006\u010c\u0001\u0000\u0000\u00008\u0118\u0001\u0000"+
-		"\u0000\u0000:\u011d\u0001\u0000\u0000\u0000<\u0124\u0001\u0000\u0000\u0000"+
-		">\u0126\u0001\u0000\u0000\u0000@\u0128\u0001\u0000\u0000\u0000B\u012a"+
-		"\u0001\u0000\u0000\u0000D\u013e\u0001\u0000\u0000\u0000FH\u0005\u0003"+
-		"\u0000\u0000GF\u0001\u0000\u0000\u0000HK\u0001\u0000\u0000\u0000IG\u0001"+
-		"\u0000\u0000\u0000IJ\u0001\u0000\u0000\u0000JL\u0001\u0000\u0000\u0000"+
-		"KI\u0001\u0000\u0000\u0000LU\u0003\u0002\u0001\u0000MO\u0005\u0003\u0000"+
-		"\u0000NM\u0001\u0000\u0000\u0000OP\u0001\u0000\u0000\u0000PN\u0001\u0000"+
-		"\u0000\u0000PQ\u0001\u0000\u0000\u0000QR\u0001\u0000\u0000\u0000RT\u0003"+
-		"\u0002\u0001\u0000SN\u0001\u0000\u0000\u0000TW\u0001\u0000\u0000\u0000"+
-		"US\u0001\u0000\u0000\u0000UV\u0001\u0000\u0000\u0000V[\u0001\u0000\u0000"+
-		"\u0000WU\u0001\u0000\u0000\u0000XZ\u0005\u0003\u0000\u0000YX\u0001\u0000"+
-		"\u0000\u0000Z]\u0001\u0000\u0000\u0000[Y\u0001\u0000\u0000\u0000[\\\u0001"+
-		"\u0000\u0000\u0000\\^\u0001\u0000\u0000\u0000][\u0001\u0000\u0000\u0000"+
-		"^_\u0005\u0000\u0000\u0001_\u0001\u0001\u0000\u0000\u0000`c\u0003\u0006"+
-		"\u0003\u0000ac\u0003\u000e\u0007\u0000b`\u0001\u0000\u0000\u0000ba\u0001"+
-		"\u0000\u0000\u0000c\u0003\u0001\u0000\u0000\u0000dh\u0003\u0006\u0003"+
-		"\u0000eh\u0003\n\u0005\u0000fh\u0003\f\u0006\u0000gd\u0001\u0000\u0000"+
-		"\u0000ge\u0001\u0000\u0000\u0000gf\u0001\u0000\u0000\u0000h\u0005\u0001"+
-		"\u0000\u0000\u0000ij\u0003\b\u0004\u0000jk\u0003D\"\u0000kl\u0005\u0019"+
-		"\u0000\u0000lo\u0003@ \u0000mn\u0005\b\u0000\u0000np\u0003\u0016\u000b"+
-		"\u0000om\u0001\u0000\u0000\u0000op\u0001\u0000\u0000\u0000pw\u0001\u0000"+
-		"\u0000\u0000qr\u0003\b\u0004\u0000rs\u0003D\"\u0000st\u0005\b\u0000\u0000"+
-		"tu\u0003\u0016\u000b\u0000uw\u0001\u0000\u0000\u0000vi\u0001\u0000\u0000"+
+		"\u0000\u0004\u0005\u0001\u0000\t\u0010\u0003\u0000&&((*-\u0001\u0000\u001e"+
+		"\u001f\u0003\u0000  \"#%%\u0002\u0000\u001a\u001b\u001f\u001f\u0001\u0000"+
+		"./\u0141\u0000I\u0001\u0000\u0000\u0000\u0002b\u0001\u0000\u0000\u0000"+
+		"\u0004g\u0001\u0000\u0000\u0000\u0006v\u0001\u0000\u0000\u0000\bx\u0001"+
+		"\u0000\u0000\u0000\nz\u0001\u0000\u0000\u0000\f~\u0001\u0000\u0000\u0000"+
+		"\u000e\u0082\u0001\u0000\u0000\u0000\u0010\u008c\u0001\u0000\u0000\u0000"+
+		"\u0012\u0099\u0001\u0000\u0000\u0000\u0014\u009d\u0001\u0000\u0000\u0000"+
+		"\u0016\u00ba\u0001\u0000\u0000\u0000\u0018\u00bc\u0001\u0000\u0000\u0000"+
+		"\u001a\u00c5\u0001\u0000\u0000\u0000\u001c\u00c7\u0001\u0000\u0000\u0000"+
+		"\u001e\u00ce\u0001\u0000\u0000\u0000 \u00d0\u0001\u0000\u0000\u0000\""+
+		"\u00d7\u0001\u0000\u0000\u0000$\u00d9\u0001\u0000\u0000\u0000&\u00db\u0001"+
+		"\u0000\u0000\u0000(\u00e7\u0001\u0000\u0000\u0000*\u00e9\u0001\u0000\u0000"+
+		"\u0000,\u00f5\u0001\u0000\u0000\u0000.\u00f7\u0001\u0000\u0000\u00000"+
+		"\u0103\u0001\u0000\u0000\u00002\u0106\u0001\u0000\u0000\u00004\u010a\u0001"+
+		"\u0000\u0000\u00006\u010c\u0001\u0000\u0000\u00008\u0118\u0001\u0000\u0000"+
+		"\u0000:\u011d\u0001\u0000\u0000\u0000<\u0124\u0001\u0000\u0000\u0000>"+
+		"\u0126\u0001\u0000\u0000\u0000@\u0128\u0001\u0000\u0000\u0000B\u012a\u0001"+
+		"\u0000\u0000\u0000D\u013e\u0001\u0000\u0000\u0000FH\u0005\u0003\u0000"+
+		"\u0000GF\u0001\u0000\u0000\u0000HK\u0001\u0000\u0000\u0000IG\u0001\u0000"+
+		"\u0000\u0000IJ\u0001\u0000\u0000\u0000JL\u0001\u0000\u0000\u0000KI\u0001"+
+		"\u0000\u0000\u0000LU\u0003\u0002\u0001\u0000MO\u0005\u0003\u0000\u0000"+
+		"NM\u0001\u0000\u0000\u0000OP\u0001\u0000\u0000\u0000PN\u0001\u0000\u0000"+
+		"\u0000PQ\u0001\u0000\u0000\u0000QR\u0001\u0000\u0000\u0000RT\u0003\u0002"+
+		"\u0001\u0000SN\u0001\u0000\u0000\u0000TW\u0001\u0000\u0000\u0000US\u0001"+
+		"\u0000\u0000\u0000UV\u0001\u0000\u0000\u0000V[\u0001\u0000\u0000\u0000"+
+		"WU\u0001\u0000\u0000\u0000XZ\u0005\u0003\u0000\u0000YX\u0001\u0000\u0000"+
+		"\u0000Z]\u0001\u0000\u0000\u0000[Y\u0001\u0000\u0000\u0000[\\\u0001\u0000"+
+		"\u0000\u0000\\^\u0001\u0000\u0000\u0000][\u0001\u0000\u0000\u0000^_\u0005"+
+		"\u0000\u0000\u0001_\u0001\u0001\u0000\u0000\u0000`c\u0003\u0006\u0003"+
+		"\u0000ac\u0003\u000e\u0007\u0000b`\u0001\u0000\u0000\u0000ba\u0001\u0000"+
+		"\u0000\u0000c\u0003\u0001\u0000\u0000\u0000dh\u0003\u0006\u0003\u0000"+
+		"eh\u0003\n\u0005\u0000fh\u0003\f\u0006\u0000gd\u0001\u0000\u0000\u0000"+
+		"ge\u0001\u0000\u0000\u0000gf\u0001\u0000\u0000\u0000h\u0005\u0001\u0000"+
+		"\u0000\u0000ij\u0003\b\u0004\u0000jk\u0003D\"\u0000kl\u0005\u0019\u0000"+
+		"\u0000lo\u0003@ \u0000mn\u0005\b\u0000\u0000np\u0003\u0016\u000b\u0000"+
+		"om\u0001\u0000\u0000\u0000op\u0001\u0000\u0000\u0000pw\u0001\u0000\u0000"+
+		"\u0000qr\u0003\b\u0004\u0000rs\u0003D\"\u0000st\u0005\b\u0000\u0000tu"+
+		"\u0003\u0016\u000b\u0000uw\u0001\u0000\u0000\u0000vi\u0001\u0000\u0000"+
 		"\u0000vq\u0001\u0000\u0000\u0000w\u0007\u0001\u0000\u0000\u0000xy\u0007"+
 		"\u0000\u0000\u0000y\t\u0001\u0000\u0000\u0000z{\u0003D\"\u0000{|\u0005"+
 		"\b\u0000\u0000|}\u0003\u0016\u000b\u0000}\u000b\u0001\u0000\u0000\u0000"+
@@ -2681,11 +2684,11 @@ public class AprlParser extends Parser {
 		"\u00c3\u0003\u001a\r\u0000\u00c3\u00c6\u0001\u0000\u0000\u0000\u00c4\u00c6"+
 		"\u0003\u001e\u000f\u0000\u00c5\u00c0\u0001\u0000\u0000\u0000\u00c5\u00c4"+
 		"\u0001\u0000\u0000\u0000\u00c6\u001b\u0001\u0000\u0000\u0000\u00c7\u00c8"+
-		"\u0005(\u0000\u0000\u00c8\u001d\u0001\u0000\u0000\u0000\u00c9\u00ca\u0003"+
+		"\u0005)\u0000\u0000\u00c8\u001d\u0001\u0000\u0000\u0000\u00c9\u00ca\u0003"+
 		"\"\u0011\u0000\u00ca\u00cb\u0003 \u0010\u0000\u00cb\u00cc\u0003\u001e"+
 		"\u000f\u0000\u00cc\u00cf\u0001\u0000\u0000\u0000\u00cd\u00cf\u0003\"\u0011"+
 		"\u0000\u00ce\u00c9\u0001\u0000\u0000\u0000\u00ce\u00cd\u0001\u0000\u0000"+
-		"\u0000\u00cf\u001f\u0001\u0000\u0000\u0000\u00d0\u00d1\u0005&\u0000\u0000"+
+		"\u0000\u00cf\u001f\u0001\u0000\u0000\u0000\u00d0\u00d1\u0005\'\u0000\u0000"+
 		"\u00d1!\u0001\u0000\u0000\u0000\u00d2\u00d3\u0003&\u0013\u0000\u00d3\u00d4"+
 		"\u0003$\u0012\u0000\u00d4\u00d5\u0003\"\u0011\u0000\u00d5\u00d8\u0001"+
 		"\u0000\u0000\u0000\u00d6\u00d8\u0003&\u0013\u0000\u00d7\u00d2\u0001\u0000"+
@@ -2726,9 +2729,9 @@ public class AprlParser extends Parser {
 		"\u011a\u011e\u0003\u0018\f\u0000\u011b\u011e\u0003B!\u0000\u011c\u011e"+
 		"\u0003<\u001e\u0000\u011d\u011a\u0001\u0000\u0000\u0000\u011d\u011b\u0001"+
 		"\u0000\u0000\u0000\u011d\u011c\u0001\u0000\u0000\u0000\u011e;\u0001\u0000"+
-		"\u0000\u0000\u011f\u0125\u0003>\u001f\u0000\u0120\u0125\u0005/\u0000\u0000"+
-		"\u0121\u0125\u00050\u0000\u0000\u0122\u0125\u00052\u0000\u0000\u0123\u0125"+
-		"\u00051\u0000\u0000\u0124\u011f\u0001\u0000\u0000\u0000\u0124\u0120\u0001"+
+		"\u0000\u0000\u011f\u0125\u0003>\u001f\u0000\u0120\u0125\u00050\u0000\u0000"+
+		"\u0121\u0125\u00051\u0000\u0000\u0122\u0125\u00053\u0000\u0000\u0123\u0125"+
+		"\u00052\u0000\u0000\u0124\u011f\u0001\u0000\u0000\u0000\u0124\u0120\u0001"+
 		"\u0000\u0000\u0000\u0124\u0121\u0001\u0000\u0000\u0000\u0124\u0122\u0001"+
 		"\u0000\u0000\u0000\u0124\u0123\u0001\u0000\u0000\u0000\u0125=\u0001\u0000"+
 		"\u0000\u0000\u0126\u0127\u0007\u0006\u0000\u0000\u0127?\u0001\u0000\u0000"+
@@ -2744,7 +2747,7 @@ public class AprlParser extends Parser {
 		"\u0003D\"\u0000\u0139\u012e\u0001\u0000\u0000\u0000\u013a\u013d\u0001"+
 		"\u0000\u0000\u0000\u013b\u0139\u0001\u0000\u0000\u0000\u013b\u013c\u0001"+
 		"\u0000\u0000\u0000\u013cC\u0001\u0000\u0000\u0000\u013d\u013b\u0001\u0000"+
-		"\u0000\u0000\u013e\u013f\u00053\u0000\u0000\u013fE\u0001\u0000\u0000\u0000"+
+		"\u0000\u0000\u013e\u013f\u00054\u0000\u0000\u013fE\u0001\u0000\u0000\u0000"+
 		"\u001fIPU[bgov\u0080\u0087\u008a\u008e\u0094\u00a1\u00a5\u00aa\u00af\u00b5"+
 		"\u00c5\u00ce\u00d7\u00e4\u00f2\u0100\u0106\u0115\u011d\u0124\u012e\u0135"+
 		"\u013b";

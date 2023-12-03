@@ -45,6 +45,7 @@ MINUS: '-';
 ASTERISK: '*';
 DOUBLE_ASTERISK: '**';
 SLASH: '/';
+DOUBLE_SLASH: '//';
 BACKSLASH: '\\';
 PERCENT: '%';
 
