@@ -1,10 +1,11 @@
 package aprl.util
 
 import aprl.compiler.ERROR
-import aprl.compiler.PositionRange
 import aprl.compiler.WARNING
+import aprl.grammar.AprlParser.UnaryPostfixedExpressionContext
 import aprl.ir.*
 import aprl.ir.operators.*
+import aprl.jvm.JvmMethod
 import aprl.lang.OperatorFunction
 import aprl.lang.Wrapper
 import org.objectweb.asm.Label
@@ -13,15 +14,22 @@ import org.objectweb.asm.Opcodes.*
 import org.objectweb.asm.Type
 import java.lang.reflect.Method
 import java.util.ArrayDeque
+import java.util.Comparator
+import kotlin.math.min
 
-class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
+class AprlFunctionVisitor(
+    mv: MethodVisitor,
+    private val ownerFile: AprlFile
+) : MethodVisitor(ASM9, mv) {
+    
+    private lateinit var returnType: Class<*>
     
     private val types = ArrayDeque<Class<*>>()
     
+    private val functionReferencesCandidates = ArrayDeque<List<JvmMethod>>()
     private val localVariables = emptyLocalVariables()
-    private val arguments = mutableListOf<AprlFunctionArgument>()
     
-    private lateinit var returnType: Class<*>
+    private val arguments = mutableListOf<AprlValueParameter>()
     
     private fun visitMaxs(maxStack: Int) {
         val maxLocals = localVariables.size + arguments.size
@@ -604,7 +612,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
                         visitUnaryPrefixedExpression(operand)
                     }
                     else -> {
-                        visitAtomicExpression(operand)
+                        visitUnaryPostfixedExpression(operand)
                     }
                 }
             },
@@ -612,8 +620,120 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
         )
     }
     
+    private fun visitUnaryPostfixedExpression(expressionTree: ExpressionTree) {
+        val oldFunctionReferenceCount = functionReferencesCandidates.size
+        val operand = expressionTree.firstChild as? ExpressionTree ?: expressionTree
+        when (operand.content) {
+            is AprlDisjunctionOperator -> {
+                visitDisjunction(operand)
+            }
+            is AprlConjunctionOperator -> {
+                visitConjunction(operand)
+            }
+            is AprlComparisonOperator -> {
+                visitComparison(operand)
+            }
+            is AprlBitwiseOperator -> {
+                visitBitwiseExpression(operand)
+            }
+            is AprlAdditiveOperator -> {
+                visitAdditiveExpression(operand)
+            }
+            is AprlMultiplicativeOperator -> {
+                visitMultiplicativeExpression(operand)
+            }
+            is AprlUnaryPostfix<*> -> {
+                visitUnaryPostfixedExpression(operand)
+            }
+            else -> {
+                visitAtomicExpression(operand)
+            }
+        }
+        val postfix = expressionTree.content as? AprlUnaryPostfix<*> ?: return
+        when (postfix) {
+            is AprlValueArguments -> {
+                val argsCount = postfix.valueArguments.size
+                val newFunctionReferenceCount = functionReferencesCandidates.size
+                visitValueArguments(postfix)
+                if (newFunctionReferenceCount > oldFunctionReferenceCount) {
+                    // find matching function and call it
+                    val functionCandidates = functionReferencesCandidates.removeLast()
+                    if (functionCandidates.isEmpty()) {
+                        val identifier = (postfix.context.getParent() as? UnaryPostfixedExpressionContext)?.atomicExpression()?.identifier()
+                            ?: throw InternalError("Value arguments were applied to identifier before, but no longer")
+                        ERROR("Unresolved reference: '$identifier'", identifier.positionRange)
+                    }
+                    val functionRatings = hashMapOf<JvmMethod, Pair<Int, Int>>()
+                    for (function in functionCandidates) {
+                        val expectedArgsCount = function.parameterTypes.size
+                        val argCountDifference = argsCount - expectedArgsCount
+                        var mismatchedTypes = 0
+                        for (i in 0 until min(expectedArgsCount, argsCount)) {
+                            val expectedType = function.parameterTypes[i]
+                            val providedType = types.elementAt(types.size - 1 - argsCount + i)
+                            if (!expectedType.isAssignableFrom(providedType)) {
+                                mismatchedTypes++
+                            }
+                        }
+                        functionRatings[function] = argCountDifference to mismatchedTypes
+                    }
+                    val ratingsComparator = Comparator<Pair<JvmMethod, Pair<Int, Int>>> { p0, p1 ->
+                        if (p0.second.first > p1.second.first) 1
+                        else if (p0.second.first < p1.second.first) -1
+                        else if (p0.second.second > p1.second.second) 1
+                        else if (p0.second.second < p1.second.second) -1
+                        else 0
+                    }
+                    val sortedFunctions = functionRatings.toList().sortedWith(ratingsComparator)
+                    val optimalMatches = mutableListOf<JvmMethod>()
+                    for ((function, rating) in sortedFunctions) {
+                        if (!(rating.first == 0 && rating.second == 0)) {
+                            break
+                        }
+                        optimalMatches.add(function)
+                    }
+                    val bestMatch: JvmMethod
+                    when (optimalMatches.size) {
+                        0 -> {
+                            // error for wrong args count and mismatched types
+                            bestMatch = sortedFunctions[0].first
+                            val argCountDifference = bestMatch.parameterTypes.size - argsCount
+                            if (argCountDifference > 0) {
+                                val message = if (argCountDifference == 1) {
+                                    "1 missing argument for function '${bestMatch.simpleName}'" // TODO: specify which argument is missing
+                                } else {
+                                    "${-argCountDifference} missing arguments for function '${bestMatch.simpleName}'" // TODO: specify which arguments are missing
+                                }
+                                ERROR(message, postfix.context.positionRange)
+                            } else if (argCountDifference < 0) {
+                                val message = "$argCountDifference too many arguments for function '${bestMatch.simpleName}'"
+                                ERROR(message, postfix.valueArguments.drop(bestMatch.parameterTypes.size).let { it.first().context.positionRange.join(it.last().context.positionRange) })
+                            }
+                            // TODO: errors for mismatched types
+                        }
+                        1 -> {
+                            bestMatch = optimalMatches.single()
+                        }
+                        else -> {
+                            // error for ambiguity
+                            bestMatch = optimalMatches[0]
+                            ERROR("Ambiguous function call, could refer to ${optimalMatches.dropLast(1).joinToString(", ") { "'${it.simpleName}'" }} or '${optimalMatches.last().simpleName}'", postfix.context.getParent().positionRange)
+                        }
+                    }
+                    visitMethodInsn(INVOKESTATIC, ownerFile.jvmInternalName, bestMatch.name, bestMatch.descriptor, false)
+                    repeat(argsCount) {
+                        types.pollLast()
+                    }
+                    types.add(bestMatch.returnType)
+                } else {
+                    // find matching .invoke() @OperatorFunction function on TOS and call it
+                }
+            }
+        }
+    }
+    
     private fun visitAtomicExpression(expression: ExpressionTree) {
-        when (expression.content) {
+        when (val content = expression.content) {
             is AprlDisjunctionOperator -> {
                 visitDisjunction(expression)
             }
@@ -639,32 +759,41 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
                 visitExponentialExpression(expression)
             }
             is AprlLiteral<*> -> {
-                with (expression.content as AprlLiteral<*>) {
-                    visitWrapperInitialization(value, internalType)
-                }
+                visitWrapperInitialization(content.value, content.internalType)
             }
             is AprlIdentifier -> {
-                (expression.content as AprlIdentifier).also { identifier ->
-                    val localVariable = localVariables["$identifier"]
-                    val argument = arguments.firstOrNull { it.name == identifier.toString() }
-                    if (localVariable != null) {
-                        if (!localVariable.initialized) {
-                            ERROR("Local variable '$identifier' might not have been initialized", identifier.context.positionRange)
-                        }
-                        visitVarInsn(ALOAD, localVariable.index)
-                        types.add(localVariable.type)
-                    } else if (argument != null) {
-                        visitVarInsn(ALOAD, arguments.indexOf(argument))
-                        types.add(argument.type!!.javaType)
-                    } else {
-                        ERROR("Unresolved reference '$identifier'", identifier.context.positionRange)
+                val localVariable = localVariables["$content"]
+                val argument = arguments.firstOrNull { it.name == content.toString() }
+                if (localVariable != null) {
+                    if (!localVariable.initialized) {
+                        ERROR(
+                            "Local variable '$content' might not have been initialized",
+                            content.context.positionRange
+                        )
                     }
+                    visitVarInsn(ALOAD, localVariable.index)
+                    types.add(localVariable.type)
+                } else if (argument != null) {
+                    visitVarInsn(ALOAD, arguments.indexOf(argument))
+                    types.add(argument.type!!.javaType)
+                } else {
+                    // TODO: identifier could refer to instance functions
+                    val functionCandidates = ownerFile.findStaticFunctions(content)
+                    functionReferencesCandidates.add(functionCandidates)
                 }
             }
             else -> {
                 throw InternalError("Compiler encountered unexpected token: '$expression'")
             }
         }
+    }
+    
+    private fun visitValueArguments(valueArguments: AprlValueArguments) {
+        valueArguments.valueArguments.forEach(::visitValueArgument)
+    }
+    
+    private fun visitValueArgument(valueArgument: AprlValueArgument) {
+        // TODO: visit value argument
     }
     
     private inline fun <reified R, reified T> visitOpaqueWrapperInitialization() {
@@ -831,11 +960,11 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
         }
     }
     
-    private fun visitArgument(argument: AprlFunctionArgument) {
+    private fun visitArgument(argument: AprlValueParameter) {
         arguments.add(argument)
     }
     
-    private fun visitArguments(arguments: List<AprlFunctionArgument>) {
+    private fun visitArguments(arguments: List<AprlValueParameter>) {
         arguments.forEach(::visitArgument)
         this.arguments.duplicates { it.name!! }.forEach {
             val errorMessage = "Conflicting declarations: ${it.joinToString(", p", "P") { param -> "arameter ${param.name!!}: ${param.type!!}" }}"
@@ -851,7 +980,7 @@ class AprlFunctionVisitor(mv: MethodVisitor) : MethodVisitor(ASM9, mv) {
     
     fun visitFunctionDeclaration(functionDeclaration: AprlFunctionDeclaration) {
         visitCode()
-        visitArguments(functionDeclaration.arguments)
+        visitArguments(functionDeclaration.valueParameters)
         visitReturnType(functionDeclaration.returnType)
         functionDeclaration.functionBody?.also {
             visitFunctionBody(it)

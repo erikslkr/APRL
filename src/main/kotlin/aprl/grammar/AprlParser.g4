@@ -28,12 +28,12 @@ returnStatement
     : RETURN expression?;
 
 functionDeclaration
-    : FUNCTION simpleIdentifier functionArguments (RIGHT_ARROW type)? functionBody?;
+    : FUNCTION simpleIdentifier valueParameters (RIGHT_ARROW type)? functionBody?;
 
-functionArguments
-    : LPAREN functionArgument? (COMMA functionArgument)* RPAREN;
+valueParameters
+    : LPAREN valueParameter? (COMMA valueParameter)* RPAREN;
 
-functionArgument
+valueParameter
     : simpleIdentifier COLON type;
 
 functionBody
@@ -112,11 +112,24 @@ unaryPrefix
     | MINUS;
 
 exponentialExpression
-    : exponentialExpression exponentialOperator atomicExpression
-    | atomicExpression;
+    : exponentialExpression exponentialOperator unaryPostfixedExpression
+    | unaryPostfixedExpression;
 
 exponentialOperator
     : DOUBLE_ASTERISK;
+
+unaryPostfixedExpression
+    : unaryPostfixedExpression unaryPostfix
+    | atomicExpression;
+
+unaryPostfix
+    : valueArguments;
+
+valueArguments
+    : LPAREN valueArgument? (COMMA valueArgument)* RPAREN;
+
+valueArgument
+    : expression;
 
 atomicExpression
     : parenthesizedExpression

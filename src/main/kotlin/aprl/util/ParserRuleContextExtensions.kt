@@ -1,11 +1,16 @@
 package aprl.util
 
-import aprl.compiler.PositionRange
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.Token
 
 val ParserRuleContext.positionRange: PositionRange
-    get() = (start.line to start.charPositionInLine + 1) to (stop.line to stop.charPositionInLine + 1)
+    get() = PositionRange(
+        Position(start.line.toUInt(), start.charPositionInLine.toUInt() + 1U),
+        Position(stop.line.toUInt(), stop.charPositionInLine.toUInt() + 1U)
+    )
 
 val Token.positionRange: PositionRange
-    get() = (line to charPositionInLine) to (line to charPositionInLine + text.length)
+    get() = PositionRange(
+        Position(line.toUInt(), charPositionInLine.toUInt()),
+        Position(line.toUInt(), charPositionInLine.toUInt() + text.length.toUInt())
+    )

@@ -1,7 +1,6 @@
 package aprl.util
 
 import aprl.compiler.ERROR
-import aprl.compiler.PositionRange
 import aprl.grammar.AprlParser.LiteralContext
 import aprl.ir.*
 import aprl.ir.operators.*
@@ -21,7 +20,7 @@ class ExpressionTree(
     
     val positionRange: PositionRange
         get() {
-            return toList().let { it.first().context.positionRange.first to it.last().context.positionRange.second }
+            return toList().let { it.first().context.positionRange.join(it.last().context.positionRange) }
         }
     
     private fun cauterize(literal: AprlLiteral<*>) {

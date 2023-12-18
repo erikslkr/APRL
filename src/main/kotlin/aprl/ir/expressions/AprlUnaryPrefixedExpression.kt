@@ -12,7 +12,10 @@ data class AprlUnaryPrefixedExpression(
 ) : AprlNode<UnaryPrefixedExpressionContext> {
     
     override fun toString(): String {
-        return "${unaryPrefix?.operatorSymbol ?: ""}$exponentialExpression"
+        if (unaryPrefix == null) {
+            return "$exponentialExpression"
+        }
+        return "${unaryPrefix!!.operatorSymbol}$exponentialExpression"
     }
     
     fun toTree(): ExpressionTree {

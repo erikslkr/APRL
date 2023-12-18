@@ -12,10 +12,10 @@ import java.util.*
 
 class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBaseListener() {
     
-    private val ir = AprlIR()
+    private val ir = AprlFile()
     
     private val currentFunctionDeclarations = Stack<AprlFunctionDeclaration>()
-    private val currentFunctionArguments = Stack<AprlFunctionArgument>()
+    private val currentValueParameters = Stack<AprlValueParameter>()
     private val currentFunctionBodies = Stack<AprlFunctionBody>()
     
     private val currentVariableDeclarations = Stack<AprlVariableDeclaration>()
@@ -32,7 +32,11 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     private val currentMultiplicativeExpressions = Stack<AprlMultiplicativeExpression>()
     private val currentUnaryPrefixedExpressions = Stack<AprlUnaryPrefixedExpression>()
     private val currentExponentialExpressions = Stack<AprlExponentialExpression>()
+    private val currentUnaryPostfixedExpressions = Stack<AprlUnaryPostfixedExpression>()
     private val currentAtomicExpressions = Stack<AprlAtomicExpression>()
+    
+    private val currentValueArguments = Stack<AprlValueArguments>()
+    private val currentValueArgumentsArguments = Stack<AprlValueArgument>()
     
     private val currentTypeReferences = Stack<AprlTypeReference>()
     
@@ -42,8 +46,8 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
         currentFunctionDeclarations.add(AprlFunctionDeclaration(null, mutableListOf(), null, null, ctx))
     }
     
-    override fun enterFunctionArgument(ctx: FunctionArgumentContext) {
-        currentFunctionArguments.add(AprlFunctionArgument(null, null, ctx))
+    override fun enterValueParameter(ctx: ValueParameterContext) {
+        currentValueParameters.add(AprlValueParameter(null, null, ctx))
     }
     
     override fun enterFunctionBody(ctx: FunctionBodyContext) {
@@ -114,6 +118,18 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
         currentExponentialExpressions.push(AprlExponentialExpression(null, exponentialOperator, null, ctx))
     }
     
+    override fun enterUnaryPostfixedExpression(ctx: UnaryPostfixedExpressionContext) {
+        currentUnaryPostfixedExpressions.push(AprlUnaryPostfixedExpression(null, null, null, ctx))
+    }
+    
+    override fun enterValueArguments(ctx: ValueArgumentsContext) {
+        currentValueArguments.push(AprlValueArguments(mutableListOf(), ctx))
+    }
+    
+    override fun enterValueArgument(ctx: ValueArgumentContext) {
+        currentValueArgumentsArguments.push(AprlValueArgument(null, ctx))
+    }
+    
     override fun enterAtomicExpression(ctx: AtomicExpressionContext) {
         currentAtomicExpressions.push(AprlAtomicExpression(null, null, null, ctx))
     }
@@ -130,9 +146,9 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
         ir.globalStatements.add(currentFunctionDeclarations.pop())
     }
     
-    override fun exitFunctionArgument(ctx: FunctionArgumentContext) {
-        val argument = currentFunctionArguments.pop()
-        currentFunctionDeclarations.peek().arguments.add(argument)
+    override fun exitValueParameter(ctx: ValueParameterContext) {
+        val argument = currentValueParameters.pop()
+        currentFunctionDeclarations.peek().valueParameters.add(argument)
     }
     
     override fun exitFunctionBody(ctx: FunctionBodyContext) {
@@ -176,6 +192,9 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
             }
             is ReturnStatementContext -> {
                 currentReturnStatements.peek().expression = expression
+            }
+            is ValueArgumentContext -> {
+                currentValueArgumentsArguments.peek().expression = expression
             }
         }
     }
@@ -287,11 +306,41 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
         }
     }
     
+    override fun exitUnaryPostfixedExpression(ctx: UnaryPostfixedExpressionContext) {
+        val unaryPostfixedExpression = currentUnaryPostfixedExpressions.pop()
+        when (ctx.parent) {
+            is UnaryPostfixedExpressionContext -> {
+                currentUnaryPostfixedExpressions.peek().unaryPostfixedExpression = unaryPostfixedExpression
+            }
+            is ExponentialExpressionContext -> {
+                currentExponentialExpressions.peek().unaryPostfixedExpression = unaryPostfixedExpression
+            }
+        }
+    }
+    
+    override fun exitValueArguments(ctx: ValueArgumentsContext) {
+        val valueArguments = currentValueArguments.pop()
+        when (ctx.parent) {
+            is UnaryPostfixedExpressionContext -> {
+                currentUnaryPostfixedExpressions.peek().unaryPostfix = valueArguments
+            }
+        }
+    }
+    
+    override fun exitValueArgument(ctx: ValueArgumentContext) {
+        val valueArgument = currentValueArgumentsArguments.pop()
+        when (ctx.parent) {
+            is ValueArgumentsContext -> {
+                currentValueArguments.peek().valueArguments.add(valueArgument)
+            }
+        }
+    }
+    
     override fun exitAtomicExpression(ctx: AtomicExpressionContext) {
         val atomicExpression = currentAtomicExpressions.pop()
         when (ctx.parent) {
-            is ExponentialExpressionContext -> {
-                currentExponentialExpressions.peek().atomicExpression = atomicExpression
+            is UnaryPostfixedExpressionContext -> {
+                currentUnaryPostfixedExpressions.peek().atomicExpression = atomicExpression
             }
         }
     }
@@ -299,8 +348,8 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     override fun exitType(ctx: TypeContext) {
         val typeReference = currentTypeReferences.pop()
         when (ctx.parent) {
-            is FunctionArgumentContext -> {
-                currentFunctionArguments.peek().type = typeReference
+            is ValueParameterContext -> {
+                currentValueParameters.peek().type = typeReference
             }
             is FunctionDeclarationContext -> {
                 currentFunctionDeclarations.peek().returnType = typeReference
@@ -328,8 +377,8 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
             is IdentifierContext -> {
                 currentIdentifiers.peek().identifiers.add(ctx.text)
             }
-            is FunctionArgumentContext -> {
-                currentFunctionArguments.peek().name = ctx.text
+            is ValueParameterContext -> {
+                currentValueParameters.peek().name = ctx.text
             }
             is VariableDeclarationContext -> {
                 currentVariableDeclarations.peek().identifier = ctx.text
@@ -352,7 +401,7 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
         currentAtomicExpressions.peek().literal = literal
     }
     
-    fun compile(source: String): AprlIR {
+    fun compile(source: String): AprlFile {
         val lexer = AprlLexer(CharStreams.fromString(source))
         val tokens = CommonTokenStream(lexer)
         val parser = AprlParser(tokens)

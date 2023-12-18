@@ -8,19 +8,19 @@ import aprl.util.ExpressionTree
 data class AprlExponentialExpression(
     var exponentialExpression: AprlExponentialExpression?,
     val exponentialOperator: AprlExponentialOperator?,
-    var atomicExpression: AprlAtomicExpression?,
+    var unaryPostfixedExpression: AprlUnaryPostfixedExpression?,
     override val context: ExponentialExpressionContext
 ) : AprlNode<ExponentialExpressionContext> {
     
     override fun toString(): String {
         if (exponentialOperator == null) {
-            return "$atomicExpression"
+            return "$unaryPostfixedExpression"
         }
-        return "$exponentialExpression $exponentialOperator $atomicExpression"
+        return "$exponentialExpression $exponentialOperator $unaryPostfixedExpression"
     }
     
     fun toTree(): ExpressionTree {
-        return ExpressionTree(exponentialExpression?.toTree(), atomicExpression?.toTree(), exponentialOperator)
+        return ExpressionTree(exponentialExpression?.toTree(), unaryPostfixedExpression?.toTree(), exponentialOperator)
     }
     
 }

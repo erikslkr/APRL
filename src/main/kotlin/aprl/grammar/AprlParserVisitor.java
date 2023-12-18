@@ -59,17 +59,17 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFunctionDeclaration(AprlParser.FunctionDeclarationContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AprlParser#functionArguments}.
+	 * Visit a parse tree produced by {@link AprlParser#valueParameters}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitFunctionArguments(AprlParser.FunctionArgumentsContext ctx);
+	T visitValueParameters(AprlParser.ValueParametersContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AprlParser#functionArgument}.
+	 * Visit a parse tree produced by {@link AprlParser#valueParameter}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitFunctionArgument(AprlParser.FunctionArgumentContext ctx);
+	T visitValueParameter(AprlParser.ValueParameterContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AprlParser#functionBody}.
 	 * @param ctx the parse tree
@@ -184,6 +184,30 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitExponentialOperator(AprlParser.ExponentialOperatorContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#unaryPostfixedExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitUnaryPostfixedExpression(AprlParser.UnaryPostfixedExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#unaryPostfix}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitUnaryPostfix(AprlParser.UnaryPostfixContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#valueArguments}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitValueArguments(AprlParser.ValueArgumentsContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#valueArgument}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitValueArgument(AprlParser.ValueArgumentContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AprlParser#atomicExpression}.
 	 * @param ctx the parse tree
