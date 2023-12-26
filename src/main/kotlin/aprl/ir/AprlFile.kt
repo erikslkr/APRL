@@ -34,6 +34,7 @@ data class AprlFile(
         } else {
             val owner = identifier.identifiers.dropLast(1).joinToString(".")
             // TODO: check for `owner` in imports
+            // TODO: unresolved reference
             val functionName = identifier.identifiers.last().toString()
             val ownerClass = ClassLoader.getSystemClassLoader().loadClass(owner)
             return ownerClass.methods.filter { it.name == functionName && Modifier.isStatic(it.modifiers) }.map(JvmMethod::fromMethod)

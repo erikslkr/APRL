@@ -77,11 +77,20 @@ class ExpressionTree(
         repeat(depth) { _ ->
             context = context.getParent()
         }
+        if ((firstChild == null) xor (secondChild == null)) {
+            // special case: unary operator => go two steps higher to get whole expression
+            context = context.getParent().getParent()
+        }
         var contextString = context.text
         val operatorSymbols = listOf("&&", "&", "||", "|", "^", ">>>", ">>", "<<", "**", "*", "\\", "/", "%", "+", "-")
-        for (it in operatorSymbols) {
-            // add spacing between operands and operators
+        operatorSymbols.forEach {
+            // add spacing before and after operators
             contextString = contextString.replace(it, " $it ")
+        }
+        val separatorSymbols = listOf(",", ":")
+        separatorSymbols.forEach {
+            // add spacing after separators
+            contextString = contextString.replace(it, "$it ")
         }
         return contextString
     }

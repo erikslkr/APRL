@@ -46,23 +46,20 @@ class AprlFunctionVisitor(
         logicHandler: (labelLoad0: Label, labelLoad1: Label, labelContinue: Label) -> Unit,
         labelHandler: (labelLoad0: Label, labelLoad1: Label, labelContinue: Label) -> Unit
     ) {
-        val booleanType = aprl.lang.Boolean::class.java
-        val booleanInternalName = Type.getType(booleanType).internalName
-        
         val handleOperand = { operand: ExpressionTree ->
             inferiorExpressionHandler(operand)
             // implicit conversion to boolean if necessary
-            if (!booleanType.isAssignableFrom(types.last)) {
-                visitImplicitConversion(booleanType, operand)
+            if (!aprl.lang.Boolean::class.java.isAssignableFrom(types.last)) {
+                // TODO: are implicit conversions really a good idea?
+                visitImplicitConversion(aprl.lang.Boolean::class.java, operand)
+                throw Error("NUH UH")
             }
-            // read primitive value from boolean wrapper
-            visitMethodInsn(INVOKEVIRTUAL, booleanInternalName, "component1", "()Z", false)
+            // primitive value from boolean wrapper
+            visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "component1", "()Z", false)
         }
         
         val operands = expressionTree.flatSplit { it is Operator }
         if (operands.size > 1) {
-            visitTypeInsn(NEW, booleanInternalName)
-            visitInsn(DUP)
             val labelLoad0 = Label() // label to load 0 if expression evaluates to zero/false
             val labelLoad1 = Label() // label to load 1 if expression evaluates to one/true
             val labelContinue = Label() // label below to allow skipping labelLoad0 or labelLoad1
@@ -74,8 +71,8 @@ class AprlFunctionVisitor(
             labelHandler(labelLoad0, labelLoad1, labelContinue)
             visitLabel(labelContinue)
             // convert primitive boolean back to wrapper type
-            visitMethodInsn(INVOKESPECIAL, booleanInternalName, "<init>", "(Z)V", false)
-            types.add(booleanType)
+            visitMethodInsn(INVOKESTATIC, "aprl/lang/Boolean", "valueOf", "(Z)Laprl/lang/Boolean;", false)
+            types.add(aprl.lang.Boolean::class.java)
         } else {
             inferiorExpressionHandler(operands.single())
         }
@@ -126,8 +123,6 @@ class AprlFunctionVisitor(
     }
     
     private fun visitComparison(expressionTree: ExpressionTree) {
-        
-        val booleanInternalName = Type.getType(aprl.lang.Boolean::class.java).internalName
         val comparands = expressionTree.flatSplitIncludingDelimiters { it is AprlComparisonOperator }
         
         fun handleComparand(comparand: ExpressionTree) {
@@ -144,12 +139,9 @@ class AprlFunctionVisitor(
             }
         }
         
-        if (comparands.size > 1) {
-            visitTypeInsn(NEW, booleanInternalName)
-            visitInsn(DUP)
-            handleComparand(comparands.first().second)
-        } else {
-            handleComparand(comparands.first().second)
+        handleComparand(comparands.first().second)
+        
+        if (comparands.size <= 1) {
             return
         }
         
@@ -273,7 +265,7 @@ class AprlFunctionVisitor(
         visitInsn(ICONST_1)
         visitLabel(labelContinue)
         // convert primitive boolean back to wrapper type
-        visitMethodInsn(INVOKESPECIAL, booleanInternalName, "<init>", "(Z)V", false)
+        visitMethodInsn(INVOKESTATIC, "aprl/lang/Boolean", "valueOf", "(Z)Laprl/lang/Boolean;", false)
         types.add(aprl.lang.Boolean::class.java)
     }
     
@@ -433,8 +425,8 @@ class AprlFunctionVisitor(
                     else -> NO_VERBATIM()
                 }
                 when (primitiveDescriptor) {
-                    "D", "F" -> visitOpaqueWrapperInitialization<Double, aprl.lang.Float>()
-                    "J", "I" -> visitOpaqueWrapperInitialization<Long, aprl.lang.Int>()
+                    "D", "F" -> visitUnspecificWrapperInitialization(Double::class.java, aprl.lang.Float::class.java)
+                    "J", "I" -> visitUnspecificWrapperInitialization(Long::class.java, aprl.lang.Int::class.java)
                     else -> NO_VERBATIM()
                 }
             }
@@ -547,6 +539,10 @@ class AprlFunctionVisitor(
     
     private fun visitUnaryPrefixedExpression(expressionTree: ExpressionTree) {
         val operand = expressionTree.firstChild as? ExpressionTree ?: expressionTree
+        if (expressionTree.content !is AprlUnaryPrefixOperator) {
+            visitExponentialExpression(expressionTree)
+            return
+        }
         when (operand.content) {
             is AprlDisjunctionOperator -> {
                 visitDisjunction(operand)
@@ -660,34 +656,41 @@ class AprlFunctionVisitor(
                     val functionCandidates = functionReferencesCandidates.removeLast()
                     if (functionCandidates.isEmpty()) {
                         val identifier = (postfix.context.getParent() as? UnaryPostfixedExpressionContext)?.atomicExpression()?.identifier()
-                            ?: throw InternalError("Value arguments were applied to identifier before, but no longer")
+                            ?: throw InternalError("Identifier had value arguments before, but not anymore")
                         ERROR("Unresolved reference: '$identifier'", identifier.positionRange)
                     }
-                    val functionRatings = hashMapOf<JvmMethod, Pair<Int, Int>>()
+                    val functionRatings = hashMapOf<JvmMethod, Pair<Int, MutableList<() -> Unit>>>()
                     for (function in functionCandidates) {
                         val expectedArgsCount = function.parameterTypes.size
                         val argCountDifference = argsCount - expectedArgsCount
-                        var mismatchedTypes = 0
+                        val mismatchedTypeErrors = mutableListOf<() -> Unit>()
                         for (i in 0 until min(expectedArgsCount, argsCount)) {
-                            val expectedType = function.parameterTypes[i]
+                            val expectedType = function.parameterTypes[i].nonPrimitive()
+                            val aprlExpectedType = expectedType.jvmToAprlType()
+                            
                             val providedType = types.elementAt(types.size - 1 - argsCount + i)
-                            if (!expectedType.isAssignableFrom(providedType)) {
-                                mismatchedTypes++
+                            val jvmProvidedType = providedType.aprlToJvmType()
+                            
+                            if (!expectedType.isAssignableFrom(jvmProvidedType)) {
+                                mismatchedTypeErrors.add {
+                                    ERROR("Type mismatch: Parameter '${function.parameterNames[i]}' expects '${aprlExpectedType.simpleName}', got '${providedType.simpleName}'", postfix.valueArguments[i].context.positionRange)
+                                }
                             }
                         }
-                        functionRatings[function] = argCountDifference to mismatchedTypes
+                        functionRatings[function] = argCountDifference to mismatchedTypeErrors
                     }
-                    val ratingsComparator = Comparator<Pair<JvmMethod, Pair<Int, Int>>> { p0, p1 ->
+                    // TODO (in visitValueArgument or something): wrapper types in arguments must be unwrapped
+                    val ratingsComparator = Comparator<Pair<JvmMethod, Pair<Int, List<() -> Unit>>>> { p0, p1 ->
                         if (p0.second.first > p1.second.first) 1
                         else if (p0.second.first < p1.second.first) -1
-                        else if (p0.second.second > p1.second.second) 1
-                        else if (p0.second.second < p1.second.second) -1
+                        else if (p0.second.second.size > p1.second.second.size) 1
+                        else if (p0.second.second.size < p1.second.second.size) -1
                         else 0
                     }
                     val sortedFunctions = functionRatings.toList().sortedWith(ratingsComparator)
                     val optimalMatches = mutableListOf<JvmMethod>()
                     for ((function, rating) in sortedFunctions) {
-                        if (!(rating.first == 0 && rating.second == 0)) {
+                        if (rating.first != 0 || rating.second.isNotEmpty()) {
                             break
                         }
                         optimalMatches.add(function)
@@ -709,7 +712,7 @@ class AprlFunctionVisitor(
                                 val message = "$argCountDifference too many arguments for function '${bestMatch.simpleName}'"
                                 ERROR(message, postfix.valueArguments.drop(bestMatch.parameterTypes.size).let { it.first().context.positionRange.join(it.last().context.positionRange) })
                             }
-                            // TODO: errors for mismatched types
+                            sortedFunctions[0].second.second.forEach { it() }
                         }
                         1 -> {
                             bestMatch = optimalMatches.single()
@@ -724,7 +727,11 @@ class AprlFunctionVisitor(
                     repeat(argsCount) {
                         types.pollLast()
                     }
-                    types.add(bestMatch.returnType)
+                    val aprlReturnType = bestMatch.returnType.jvmToAprlType()
+                    if (Wrapper::class.java.isAssignableFrom(aprlReturnType)) {
+                        @Suppress("UNCHECKED_CAST")
+                        visitUnspecificWrapperInitialization(bestMatch.returnType, aprlReturnType as Class<out Wrapper<*>>)
+                    }
                 } else {
                     // find matching .invoke() @OperatorFunction function on TOS and call it
                 }
@@ -759,7 +766,7 @@ class AprlFunctionVisitor(
                 visitExponentialExpression(expression)
             }
             is AprlLiteral<*> -> {
-                visitWrapperInitialization(content.value, content.internalType)
+                visitExplicitWrapperInitialization(content.value, content.internalType)
             }
             is AprlIdentifier -> {
                 val localVariable = localVariables["$content"]
@@ -793,31 +800,29 @@ class AprlFunctionVisitor(
     }
     
     private fun visitValueArgument(valueArgument: AprlValueArgument) {
-        // TODO: visit value argument
+        visitExpressionOptimization(valueArgument.expression!!.toTree())
+        // TODO: conversion to under-the-hood type, if necessary
     }
     
-    private inline fun <reified R, reified T> visitOpaqueWrapperInitialization() {
-        val internalName = Type.getType(T::class.java).internalName
-        val representedTypeDescriptor = R::class.java.primitiveDescriptorOrNull() ?: Type.getType(R::class.java).descriptor
-        visitTypeInsn(NEW, internalName)
-        visitInsn(DUP)
-        visitMethodInsn(INVOKESPECIAL, internalName, "<init>", "($representedTypeDescriptor)V", false)
-        types.add(T::class.java)
+    private fun visitUnspecificWrapperInitialization(wrappedType: Class<*>, wrapperType: Class<out Wrapper<*>>) {
+        val internalWrapperType = Type.getType(wrapperType)
+        val internalName = internalWrapperType.internalName
+        val representedTypeDescriptor = wrappedType.primitiveDescriptorOrNull() ?: Type.getType(wrappedType).descriptor
+        visitMethodInsn(INVOKESTATIC, internalName, "valueOf", "($representedTypeDescriptor)${internalWrapperType.descriptor}", false)
+        types.add(wrapperType)
     }
     
-    private fun <T: Any> visitWrapperInitialization(value: T?, type: Class<out T>) {
-        // Name of the wrapper class, e.g. `aprl/lang/Int`
-        val internalName = Type.getType(type).internalName
-        visitTypeInsn(NEW, internalName)
-        visitInsn(DUP)
+    private fun <T: Any> visitExplicitWrapperInitialization(value: T?, wrapperType: Class<out T>) {
+        val internalWrapperType = Type.getType(wrapperType)
+        val internalName = internalWrapperType.internalName
         if (value != null) {
             visitLdcInsn(value)
         } else {
             visitInsn(ACONST_NULL)
         }
         val representedType = (value?.javaClass ?: Any::class.java).let { it.primitiveDescriptorOrNull() ?: Type.getType(it).descriptor }
-        visitMethodInsn(INVOKESPECIAL, internalName, "<init>", "($representedType)V", false)
-        types.add(type)
+        visitMethodInsn(INVOKESTATIC, internalName, "valueOf", "($representedType)${internalWrapperType.descriptor}", false)
+        types.add(wrapperType)
     }
     
     private fun visitImplicitConversion(expectedType: Class<*>, expressionString: String, expressionPosition: PositionRange) {
@@ -865,7 +870,7 @@ class AprlFunctionVisitor(
             visitExpressionOptimization(expressionTree)
         } else {
             if (Wrapper::class.java.isAssignableFrom(type)) {
-                visitWrapperInitialization(type.defaultValue, type)
+                visitExplicitWrapperInitialization(type.defaultValue, type)
             } else {
                 visitInsn(ACONST_NULL)
             }
@@ -940,6 +945,9 @@ class AprlFunctionVisitor(
             }
             visitInsn(ARETURN)
         } else {
+            if (returnStatement.expression != null) {
+                ERROR("Void function should not return a value", returnStatement.expression!!.context.positionRange)
+            }
             visitInsn(RETURN)
         }
     }

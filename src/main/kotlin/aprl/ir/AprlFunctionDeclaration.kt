@@ -17,8 +17,9 @@ data class AprlFunctionDeclaration(
     
     fun asJvmMethod(ownerInternalName: String): JvmMethod {
         val parameterTypes = valueParameters.map { it.type?.javaType ?: Any::class.java }
+        val parameterNames = valueParameters.map { it.name!! }
         val returnType = returnType?.javaType ?: Void::class.java
-        return JvmMethod(name!!, ownerInternalName, parameterTypes, returnType)
+        return JvmMethod(name!!, ownerInternalName, parameterTypes, parameterNames, returnType)
     }
     
 }

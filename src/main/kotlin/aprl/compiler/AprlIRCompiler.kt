@@ -320,7 +320,7 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     
     override fun exitValueArguments(ctx: ValueArgumentsContext) {
         val valueArguments = currentValueArguments.pop()
-        when (ctx.parent) {
+        when (ctx.parent.parent) {
             is UnaryPostfixedExpressionContext -> {
                 currentUnaryPostfixedExpressions.peek().unaryPostfix = valueArguments
             }

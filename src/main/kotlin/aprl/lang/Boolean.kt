@@ -36,4 +36,11 @@ data class Boolean(
         return Boolean(value xor other.value)
     }
     
+    companion object {
+        @JvmStatic
+        fun valueOf(value: kotlin.Boolean): Boolean {
+            return Boolean(value)
+        }
+    }
+    
 }
