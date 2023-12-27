@@ -30,7 +30,10 @@ class AprlFunctionVisitor(
     private val localVariables = emptyLocalVariables()
     
     private val arguments = mutableListOf<AprlValueParameter>()
-    
+
+    private var hasScopeDefinitivelyReturned = false
+
+    @Suppress("SameParameterValue")
     private fun visitMaxs(maxStack: Int) {
         val maxLocals = localVariables.size + arguments.size
         super.visitMaxs(maxStack, maxLocals)
@@ -668,10 +671,10 @@ class AprlFunctionVisitor(
                             val expectedType = function.parameterTypes[i].nonPrimitive()
                             val aprlExpectedType = expectedType.jvmToAprlType()
                             
-                            val providedType = types.elementAt(types.size - 1 - argsCount + i)
+                            val providedType = types.elementAt(types.size - argsCount + i)
                             val jvmProvidedType = providedType.aprlToJvmType()
                             
-                            if (!expectedType.isAssignableFrom(jvmProvidedType)) {
+                            if (!(expectedType.isAssignableFrom(jvmProvidedType) || expectedType.isAssignableFrom(providedType))) {
                                 mismatchedTypeErrors.add {
                                     ERROR("Type mismatch: Parameter '${function.parameterNames[i]}' expects '${aprlExpectedType.simpleName}', got '${providedType.simpleName}'", postfix.valueArguments[i].context.positionRange)
                                 }
@@ -679,7 +682,6 @@ class AprlFunctionVisitor(
                         }
                         functionRatings[function] = argCountDifference to mismatchedTypeErrors
                     }
-                    // TODO (in visitValueArgument or something): wrapper types in arguments must be unwrapped
                     val ratingsComparator = Comparator<Pair<JvmMethod, Pair<Int, List<() -> Unit>>>> { p0, p1 ->
                         if (p0.second.first > p1.second.first) 1
                         else if (p0.second.first < p1.second.first) -1
@@ -728,10 +730,11 @@ class AprlFunctionVisitor(
                         types.pollLast()
                     }
                     val aprlReturnType = bestMatch.returnType.jvmToAprlType()
-                    if (Wrapper::class.java.isAssignableFrom(aprlReturnType)) {
+                    if (aprlReturnType != bestMatch.returnType) {
                         @Suppress("UNCHECKED_CAST")
                         visitUnspecificWrapperInitialization(bestMatch.returnType, aprlReturnType as Class<out Wrapper<*>>)
                     }
+                    types.add(aprlReturnType)
                 } else {
                     // find matching .invoke() @OperatorFunction function on TOS and call it
                 }
@@ -784,7 +787,7 @@ class AprlFunctionVisitor(
                     visitVarInsn(ALOAD, arguments.indexOf(argument))
                     types.add(argument.type!!.javaType)
                 } else {
-                    // TODO: identifier could refer to instance functions
+                    // TODO (LATER): identifier could refer to instance functions instead of just static ones
                     val functionCandidates = ownerFile.findStaticFunctions(content)
                     functionReferencesCandidates.add(functionCandidates)
                 }
@@ -801,14 +804,15 @@ class AprlFunctionVisitor(
     
     private fun visitValueArgument(valueArgument: AprlValueArgument) {
         visitExpressionOptimization(valueArgument.expression!!.toTree())
-        // TODO: conversion to under-the-hood type, if necessary
+        // TODO: consider case that a JVM type is expected, but APRL type is passed
     }
     
     private fun visitUnspecificWrapperInitialization(wrappedType: Class<*>, wrapperType: Class<out Wrapper<*>>) {
         val internalWrapperType = Type.getType(wrapperType)
         val internalName = internalWrapperType.internalName
         val representedTypeDescriptor = wrappedType.primitiveDescriptorOrNull() ?: Type.getType(wrappedType).descriptor
-        visitMethodInsn(INVOKESTATIC, internalName, "valueOf", "($representedTypeDescriptor)${internalWrapperType.descriptor}", false)
+        val funcDescriptor = "($representedTypeDescriptor)${internalWrapperType.descriptor}"
+        visitMethodInsn(INVOKESTATIC, internalName, "valueOf", funcDescriptor, false)
         types.add(wrapperType)
     }
     
@@ -929,7 +933,6 @@ class AprlFunctionVisitor(
         }
     }
     
-    // TODO: handle multiple return statements, unreachable code, etc
     private fun visitReturnStatement(returnStatement: AprlReturnStatement) {
         if (returnType != Void::class.java) {
             if (returnStatement.expression == null) {
@@ -952,18 +955,34 @@ class AprlFunctionVisitor(
         }
     }
     
+    private fun visitLocalStatement(statement: AprlLocalStatement) {
+        if (hasScopeDefinitivelyReturned) {
+            ERROR("Unreachable code", statement.context.positionRange)
+            return
+        }
+        when (statement) {
+            is AprlVariableDeclaration -> {
+                visitVariableDeclaration(statement)
+            }
+            is AprlVariableAssignment -> {
+                visitVariableAssignment(statement)
+            }
+            is AprlReturnStatement -> {
+                visitReturnStatement(statement)
+            }
+        }
+        if (statement.isDefinitiveReturnStatement()) {
+            hasScopeDefinitivelyReturned = true
+        }
+    }
+    
     private fun visitFunctionBody(functionBody: AprlFunctionBody) {
-        for (statement in functionBody.statements) {
-            when (statement) {
-                is AprlVariableDeclaration -> {
-                    visitVariableDeclaration(statement)
-                }
-                is AprlVariableAssignment -> {
-                    visitVariableAssignment(statement)
-                }
-                is AprlReturnStatement -> {
-                    visitReturnStatement(statement)
-                }
+        functionBody.statements.forEach(::visitLocalStatement)
+        if (!hasScopeDefinitivelyReturned) {
+            if (returnType == Void::class.java) {
+                visitInsn(RETURN)
+            } else {
+                ERROR("Missing return statement", functionBody.context.RCURLY().symbol.positionRange)
             }
         }
     }

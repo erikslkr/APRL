@@ -10,5 +10,9 @@ data class AprlReturnStatement(
     override fun toString(): String {
         return "return${expression?.let { " $it"}}"
     }
+
+    override fun isDefinitiveReturnStatement(): Boolean {
+        return true
+    }
     
 }

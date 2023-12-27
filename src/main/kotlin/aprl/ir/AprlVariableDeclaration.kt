@@ -20,6 +20,10 @@ data class AprlVariableDeclaration(
             "$variableClassifier $identifier: $typeAnnotation = $expression"
         }
     }
+
+    override fun isDefinitiveReturnStatement(): Boolean {
+        return false
+    }
     
 }
 

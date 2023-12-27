@@ -11,5 +11,9 @@ data class AprlVariableAssignment(
     override fun toString(): String {
         return "$identifier = $expression"
     }
+
+    override fun isDefinitiveReturnStatement(): Boolean {
+        return false
+    }
     
 }
