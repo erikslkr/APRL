@@ -27,15 +27,40 @@ class AprlFunctionVisitor(
     private val types = ArrayDeque<Class<*>>()
     
     private val functionReferencesCandidates = ArrayDeque<List<JvmMethod>>()
-    private val localVariables = emptyLocalVariables()
     
     private val arguments = mutableListOf<AprlValueParameter>()
-
-    private var hasScopeDefinitivelyReturned = false
-
+    
+    private var currentLocalScope = LocalScope()
+    private val maxLocalVariables = mutableListOf<Int>()
+    
+    private fun getAllAccessibleLocalVariables(): LocalVariables {
+        val accessibleLocalVariables = emptyLocalVariables()
+        var localScope: LocalScope? = currentLocalScope
+        while (localScope != null) {
+            accessibleLocalVariables.putAll(localScope.localVariables)
+            localScope = localScope.parent
+        }
+        return accessibleLocalVariables
+    }
+    
+    private fun enterLocalScope() {
+        currentLocalScope = LocalScope(currentLocalScope)
+    }
+    
+    private fun exitLocalScope() {
+        val currentMaxLocals = currentLocalScope.localVariables.size
+        val index = currentLocalScope.depth
+        if (maxLocalVariables.size <= index) {
+            maxLocalVariables.add(currentMaxLocals)
+        } else {
+            maxLocalVariables[index] = currentMaxLocals
+        }
+        currentLocalScope = currentLocalScope.parent ?: throw InternalError("More local scopes have been exited than entered")
+    }
+    
     @Suppress("SameParameterValue")
     private fun visitMaxs(maxStack: Int) {
-        val maxLocals = localVariables.size + arguments.size
+        val maxLocals = maxLocalVariables.sum() + arguments.size
         super.visitMaxs(maxStack, maxLocals)
     }
     
@@ -56,7 +81,7 @@ class AprlFunctionVisitor(
                 visitImplicitConversion(aprl.lang.Boolean::class.java, operand)
             }
             // primitive value from boolean wrapper
-            visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "component1", "()Z", false)
+            visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "__value__", "()Z", false)
         }
         
         val operands = expressionTree.flatSplit { it is Operator }
@@ -154,7 +179,8 @@ class AprlFunctionVisitor(
         fun performComparison(
             comparator: AprlNode<*>?,
             comparand: ExpressionTree,
-            comparisonOperation: (compareToInvoker: () -> Unit) -> Unit
+            opcodes: IntArray,
+            jumpLabel: Label
         ) {
             if (comparator !is AprlComparisonOperator) {
                 throw InternalError("Compiler assumed comparison operator in comparison expression, but found '$comparator' (${comparator?.javaClass})")
@@ -166,105 +192,129 @@ class AprlFunctionVisitor(
             val lhsType = types.previousToLast
             val rhsType = types.last()
             var bestComparatorFunctionMatch: Method? = null
+            var bestEqualsFunctionMatch: Method? = null
             for (method in lhsType.methods.filter { it.name == "compareTo" }) {
-                // find function that returns Int, matches given rhs type and is annotated with #OperatorFunction
-                if (Int::class.java.isAssignableFrom(method.returnType) && method.parameters.size == 1 && method.parameterTypes[0].isAssignableFrom(rhsType) && OperatorFunction() in method.annotations) {
+                // find function that returns Int and matches given rhs type
+                if (Int::class.java.isAprlAssignableFrom(method.returnType)
+                    && method.parameters.size == 1
+                    && method.parameterTypes[0].isAprlAssignableFrom(rhsType)
+                ) {
                     if (bestComparatorFunctionMatch?.parameterTypes?.get(0)?.isAssignableFrom(method.parameterTypes[0]) != false) {
                         bestComparatorFunctionMatch = method
                     }
                 }
             }
-            if (bestComparatorFunctionMatch == null) {
+            for (method in lhsType.methods.filter { it.name == "equals" }) {
+                // find function that returns Boolean and matches given rhs type
+                if (Boolean::class.java.isAprlAssignableFrom(method.returnType)
+                    && method.parameters.size == 1
+                    && method.parameterTypes[0].isAprlAssignableFrom(rhsType)
+                ) {
+                    if (bestEqualsFunctionMatch?.parameterTypes?.get(0)?.isAssignableFrom(method.parameterTypes[0]) != false) {
+                        bestEqualsFunctionMatch = method
+                    }
+                }
+            }
+            if (bestEqualsFunctionMatch == null) {
+                throw InternalError("Every object should have at least one .equals function")
+            }
+            if (bestComparatorFunctionMatch == null && !comparator.isIntrinsic) {
                 ERROR("Operation '${comparator.operatorSymbol}' is not defined on types '${lhsType.simpleName}' and '${rhsType.simpleName}'", comparator.context.positionRange)
             } else {
-                val compareToInvoker = {
-                    val functionSignature = "(${Type.getType(rhsType).descriptor})${Type.getType(bestComparatorFunctionMatch.returnType).descriptor}"
-                    visitMethodInsn(INVOKEVIRTUAL, Type.getType(lhsType).internalName, "compareTo", functionSignature, lhsType.isInterface)
+                val invokeCompareTo = bestComparatorFunctionMatch?.let {{
+                    wrapOrUnwrap(rhsType, bestComparatorFunctionMatch.parameterTypes[0])
+                    val functionSignature = Type.getType(bestComparatorFunctionMatch).descriptor
+                    visitMethodInsn(
+                        INVOKEVIRTUAL,
+                        bestComparatorFunctionMatch.declaringClass.internalName,
+                        "compareTo",
+                        functionSignature,
+                        lhsType.isInterface
+                    )
+                    if (!Int::class.java.isAssignableFrom(bestComparatorFunctionMatch.returnType)) {
+                        visitMethodInsn(
+                            INVOKEVIRTUAL,
+                            "aprl/lang/Int",
+                            "__int__",
+                            "()I",
+                            false
+                        )
+                    }
                     visitInsn(ICONST_0)
+                }}
+                val invokeEquals = {
+                    wrapOrUnwrap(rhsType, bestEqualsFunctionMatch.parameterTypes[0])
+                    val functionSignature = Type.getType(bestEqualsFunctionMatch).descriptor
+                    visitMethodInsn(
+                        INVOKEVIRTUAL,
+                        bestEqualsFunctionMatch.declaringClass.internalName,
+                        "equals",
+                        functionSignature,
+                        false
+                    )
+                    if (!Boolean::class.java.isAssignableFrom(bestEqualsFunctionMatch.returnType)) {
+                        visitMethodInsn(
+                            INVOKEVIRTUAL,
+                            "aprl/lang/Boolean",
+                            "__value__",
+                            "()Z",
+                            false
+                        )
+                    }
                 }
-                comparisonOperation(compareToInvoker)
+                // TODO: before comparing, rhs comparand (current top-of-stack) might need wrapping/unwrapping
+                when (comparator) {
+                    is AprlComparisonOperator.AprlIdenticalOperator -> {
+                        visitJumpInsn(opcodes[0], jumpLabel)
+                    }
+                    is AprlComparisonOperator.AprlNotIdenticalOperator -> {
+                        visitJumpInsn(opcodes[1], jumpLabel)
+                    }
+                    is AprlComparisonOperator.AprlEqualOperator -> {
+                        invokeEquals()
+                        visitJumpInsn(opcodes[2], jumpLabel)
+                    }
+                    is AprlComparisonOperator.AprlNotEqualOperator -> {
+                        invokeEquals()
+                        visitJumpInsn(opcodes[3], jumpLabel)
+                    }
+                    is AprlComparisonOperator.AprlGreaterEqualOperator -> {
+                        invokeCompareTo?.invoke()
+                        visitJumpInsn(opcodes[4], jumpLabel)
+                    }
+                    is AprlComparisonOperator.AprlGreaterThanOperator -> {
+                        invokeCompareTo?.invoke()
+                        visitJumpInsn(opcodes[5], jumpLabel)
+                    }
+                    is AprlComparisonOperator.AprlLessEqualOperator -> {
+                        invokeCompareTo?.invoke()
+                        visitJumpInsn(opcodes[6], jumpLabel)
+                    }
+                    is AprlComparisonOperator.AprlLessThanOperator -> {
+                        invokeCompareTo?.invoke()
+                        visitJumpInsn(opcodes[7], jumpLabel)
+                    }
+                }
             }
         }
         
         for ((comparator, comparand) in comparands.drop(1).dropLast(1)) {
-            performComparison(comparator, comparand) { compareToInvoker ->
-                when (comparator) {
-                    is AprlComparisonOperator.AprlIdenticalOperator -> {
-                        visitJumpInsn(IF_ACMPNE, labelLoad0)
-                    }
-                    is AprlComparisonOperator.AprlNotIdenticalOperator -> {
-                        visitJumpInsn(IF_ACMPEQ, labelLoad0)
-                    }
-                    is AprlComparisonOperator.AprlEqualOperator -> {
-                        compareToInvoker()
-                        visitJumpInsn(IF_ICMPNE, labelLoad0)
-                    }
-                    is AprlComparisonOperator.AprlNotEqualOperator -> {
-                        compareToInvoker()
-                        visitJumpInsn(IF_ICMPEQ, labelLoad0)
-                    }
-                    is AprlComparisonOperator.AprlLessThanOperator -> {
-                        compareToInvoker()
-                        visitJumpInsn(IF_ICMPGE, labelLoad0)
-                    }
-                    is AprlComparisonOperator.AprlLessEqualOperator -> {
-                        compareToInvoker()
-                        visitJumpInsn(IF_ICMPGT, labelLoad0)
-                    }
-                    is AprlComparisonOperator.AprlGreaterThanOperator -> {
-                        compareToInvoker()
-                        visitJumpInsn(IF_ICMPLE, labelLoad0)
-                    }
-                    is AprlComparisonOperator.AprlGreaterEqualOperator -> {
-                        compareToInvoker()
-                        visitJumpInsn(IF_ICMPLT, labelLoad0)
-                    }
-                }
-            }
+            performComparison(comparator, comparand, intArrayOf(IF_ACMPNE, IF_ACMPEQ, IFEQ, IFNE, IF_ICMPLT, IF_ICMPLE, IF_ICMPGT, IF_ICMPGE), labelLoad0)
             previousComparand = comparand
         }
+        
         val (comparator, comparand) = comparands.last()
-        // logic for last comparison
-        performComparison(comparator, comparand) { invokeCompareTo ->
-            when (comparator) {
-                is AprlComparisonOperator.AprlIdenticalOperator -> {
-                    visitJumpInsn(IF_ACMPEQ, labelLoad1)
-                }
-                is AprlComparisonOperator.AprlNotIdenticalOperator -> {
-                    visitJumpInsn(IF_ACMPNE, labelLoad1)
-                }
-                is AprlComparisonOperator.AprlEqualOperator -> {
-                    invokeCompareTo()
-                    visitJumpInsn(IF_ICMPEQ, labelLoad1)
-                }
-                is AprlComparisonOperator.AprlNotEqualOperator -> {
-                    invokeCompareTo()
-                    visitJumpInsn(IF_ICMPNE, labelLoad1)
-                }
-                is AprlComparisonOperator.AprlLessThanOperator -> {
-                    invokeCompareTo()
-                    visitJumpInsn(IF_ICMPLT, labelLoad1)
-                }
-                is AprlComparisonOperator.AprlLessEqualOperator -> {
-                    invokeCompareTo()
-                    visitJumpInsn(IF_ICMPLE, labelLoad1)
-                }
-                is AprlComparisonOperator.AprlGreaterThanOperator -> {
-                    invokeCompareTo()
-                    visitJumpInsn(IF_ICMPGT, labelLoad1)
-                }
-                is AprlComparisonOperator.AprlGreaterEqualOperator -> {
-                    invokeCompareTo()
-                    visitJumpInsn(IF_ICMPGE, labelLoad1)
-                }
-            }
-        }
+        performComparison(comparator, comparand, intArrayOf(IF_ACMPEQ, IF_ACMPNE, IFNE, IFEQ, IF_ICMPGE, IF_ICMPGT, IF_ICMPLE, IF_ICMPLT), labelLoad1)
+        
         visitLabel(labelLoad0)
         visitInsn(ICONST_0)
         visitJumpInsn(GOTO, labelContinue)
+        
         visitLabel(labelLoad1)
         visitInsn(ICONST_1)
+        
         visitLabel(labelContinue)
+        
         // convert primitive boolean back to wrapper type
         visitMethodInsn(INVOKESTATIC, "aprl/lang/Boolean", "valueOf", "(Z)Laprl/lang/Boolean;", false)
         types.add(aprl.lang.Boolean::class.java)
@@ -294,15 +344,19 @@ class AprlFunctionVisitor(
             }
             
             if (verbatim) {
-                if (types.last().methods.none { it.name == "component1" && it.parameterTypes.isEmpty() }) {
+                if (types.last().methods.none { it.name == "__value__" && it.parameterTypes.isEmpty() }) {
                     WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
                 } else {
-                    val component1 = types.last().getMethod("component1")
-                    val primitiveReturnType = component1.returnType.primitiveDescriptorOrNull()
-                    if (primitiveReturnType != null) {
-                        val internalName = Type.getType(types.last()).internalName
-                        visitMethodInsn(INVOKEVIRTUAL, internalName, "component1", "()$primitiveReturnType", false)
-                        verbatimType = component1.returnType
+                    val primitiveType = types.last().aprlToPrimitiveType()
+                    if (primitiveType != null) {
+                        visitMethodInsn(
+                            INVOKEVIRTUAL,
+                            types.last().internalName,
+                            "__value__",
+                            "()${primitiveType.descriptor}",
+                            false
+                        )
+                        verbatimType = primitiveType
                     } else {
                         WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
                     }
@@ -310,20 +364,18 @@ class AprlFunctionVisitor(
             }
             visitOverloadableBinaryExpression(expression.secondChild as ExpressionTree, operatorClass, inferiorExpressionHandler, verbatim)
             if (verbatim && verbatimType != null) {
-                if (types.last().methods.none { it.name == "component1" && it.parameterTypes.isEmpty() }) {
+                if (types.last().methods.none { it.name == "__value__" && it.parameterTypes.isEmpty() }) {
                     NO_VERBATIM()
                 } else {
-                    val component1 = types.last().getMethod("component1")
-                    val primitiveReturnType = component1.returnType.primitiveDescriptorOrNull()
-                    if (primitiveReturnType != null) {
-                        val internalName = Type.getType(types.last()).internalName
-                        visitMethodInsn(INVOKEVIRTUAL, internalName, "component1", "()$primitiveReturnType", false)
-                        if (component1.returnType != verbatimType) {
+                    val primitiveType = types.last().aprlToPrimitiveType()
+                    if (primitiveType != null) {
+                        visitMethodInsn(INVOKEVIRTUAL, types.last().internalName, "__value__", "()$primitiveType", false)
+                        if (primitiveType != verbatimType) {
                             NO_VERBATIM()
                         } else {
                             types.pollLast()
                             types.pollLast()
-                            types.add(component1.returnType)
+                            types.add(primitiveType)
                         }
                     } else {
                         WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
@@ -442,8 +494,8 @@ class AprlFunctionVisitor(
                     }
                 }
                 if (bestOperatorFunctionMatch != null) {
-                    val returnType = Type.getType(bestOperatorFunctionMatch.returnType).descriptor
-                    visitMethodInsn(INVOKEVIRTUAL, types.previousToLast.name.replace(".", "/"), operator.functionName, "(${Type.getType(types.lastButNotFirst).descriptor})$returnType", false)
+                    val returnType = bestOperatorFunctionMatch.returnType.descriptor
+                    visitMethodInsn(INVOKEVIRTUAL, types.previousToLast.name.replace(".", "/"), operator.functionName, "(${types.lastButNotFirst.descriptor})$returnType", false)
                     // remove operand types
                     types.pollLast()
                     types.pollLast()
@@ -570,7 +622,7 @@ class AprlFunctionVisitor(
         val operator = expressionTree.content as? AprlUnaryPrefixOperator ?: return
         val operatorFunction = types.last().methods.singleOrNull { it.name == operator.functionName && it.parameterTypes.isEmpty() }
         if (operatorFunction != null) {
-            val returnType = Type.getType(operatorFunction.returnType).descriptor
+            val returnType = operatorFunction.returnType.descriptor
             visitMethodInsn(INVOKEVIRTUAL, types.last().name.replace(".", "/"), operator.functionName, "()$returnType", false)
             // remove operand type
             types.pollLast()
@@ -770,7 +822,7 @@ class AprlFunctionVisitor(
                 visitExplicitWrapperInitialization(content.value, content.internalType)
             }
             is AprlIdentifier -> {
-                val localVariable = localVariables["$content"]
+                val localVariable = getAllAccessibleLocalVariables()["$content"]
                 val argument = arguments.firstOrNull { it.name == content.toString() }
                 if (localVariable != null) {
                     if (!localVariable.initialized) {
@@ -784,10 +836,12 @@ class AprlFunctionVisitor(
                 } else if (argument != null) {
                     visitVarInsn(ALOAD, arguments.indexOf(argument))
                     types.add(argument.type!!.javaType)
-                } else {
+                } else if ((content.context.parent.parent as UnaryPostfixedExpressionContext).unaryPostfix()?.valueArguments() != null) {
                     // TODO (LATER): identifier could refer to instance functions instead of just static ones
                     val functionCandidates = ownerFile.findStaticFunctions(content)
                     functionReferencesCandidates.add(functionCandidates)
+                } else {
+                    ERROR("Unresolved reference '$content'", content.context.positionRange)
                 }
             }
             else -> {
@@ -806,25 +860,38 @@ class AprlFunctionVisitor(
     }
     
     private fun visitUnspecificWrapperInitialization(wrappedType: Class<*>, wrapperType: Class<out Wrapper<*>>) {
-        val internalWrapperType = Type.getType(wrapperType)
-        val internalName = internalWrapperType.internalName
-        val representedTypeDescriptor = wrappedType.primitiveDescriptorOrNull() ?: Type.getType(wrappedType).descriptor
-        val funcDescriptor = "($representedTypeDescriptor)${internalWrapperType.descriptor}"
-        visitMethodInsn(INVOKESTATIC, internalName, "valueOf", funcDescriptor, false)
+        val representedTypeDescriptor = wrappedType.primitiveDescriptorOrNull() ?: wrappedType.descriptor
+        val funcDescriptor = "($representedTypeDescriptor)${wrapperType.descriptor}"
+        visitMethodInsn(INVOKESTATIC, wrapperType.internalName, "valueOf", funcDescriptor, false)
         types.add(wrapperType)
     }
     
     private fun <T: Any> visitExplicitWrapperInitialization(value: T?, wrapperType: Class<out T>) {
-        val internalWrapperType = Type.getType(wrapperType)
-        val internalName = internalWrapperType.internalName
         if (value != null) {
             visitLdcInsn(value)
         } else {
             visitInsn(ACONST_NULL)
         }
-        val representedType = (value?.javaClass ?: Any::class.java).let { it.primitiveDescriptorOrNull() ?: Type.getType(it).descriptor }
-        visitMethodInsn(INVOKESTATIC, internalName, "valueOf", "($representedType)${internalWrapperType.descriptor}", false)
+        val representedType = (value?.javaClass ?: Any::class.java).let { it.primitiveDescriptorOrNull() ?: it.descriptor }
+        visitMethodInsn(INVOKESTATIC, wrapperType.internalName, "valueOf", "($representedType)${wrapperType.descriptor}", false)
         types.add(wrapperType)
+    }
+    
+    private fun wrapOrUnwrap(from: Class<*>, to: Class<*>) {
+        if (to.isAprlAssignableFrom(from) && !to.isAssignableFrom(from)) {
+            if (Wrapper::class.java.isAssignableFrom(from)) {
+                visitMethodInsn(
+                    INVOKEVIRTUAL,
+                    from.internalName,
+                    "__value__",
+                    "()${from.aprlToPrimitiveType()!!.descriptor}",
+                    false
+                )
+            } else if (Wrapper::class.java.isAssignableFrom(to)) {
+                @Suppress("UNCHECKED_CAST")
+                visitUnspecificWrapperInitialization(from, to as Class<out Wrapper<*>>)
+            }
+        }
     }
     
     private fun visitImplicitConversion(expectedType: Class<*>, expressionString: String, expressionPosition: PositionRange) {
@@ -842,7 +909,7 @@ class AprlFunctionVisitor(
         if (bestConversionFunctionMatch == null) {
             ERROR("Expression '$expressionString' (of type '${types.last.simpleName}') cannot be implicitly converted to '${expectedType.simpleName}' (No function '${types.last.simpleName}.$conversionFunctionName() -> ${expectedType.simpleName}')", expressionPosition)
         } else {
-            visitMethodInsn(INVOKEVIRTUAL, Type.getType(types.last).internalName, conversionFunctionName, "()${Type.getType(bestConversionFunctionMatch.returnType).descriptor}", false)
+            visitMethodInsn(INVOKEVIRTUAL, types.last().internalName, conversionFunctionName, "()${bestConversionFunctionMatch.returnType.descriptor}", false)
             types.pollLast()
             types.add(bestConversionFunctionMatch.returnType)
             WARNING("Implicit conversion from '${types.last.simpleName}' to '${bestConversionFunctionMatch.returnType.simpleName}'", expressionPosition)
@@ -887,11 +954,12 @@ class AprlFunctionVisitor(
         visitExpressionOrDefaultValue(declaration.expression, variableType ?: Any::class.java)
         variableType = variableType ?: types.lastOrNull() ?: return
         val index: Int
-        if (declaration.identifier in localVariables.keys) {
-            index = localVariables[declaration.identifier]!!.index
-            val originalDeclaration = localVariables[declaration.identifier]!!.originalDeclaration
+        val accessibleLocalVariables = getAllAccessibleLocalVariables()
+        if (declaration.identifier in accessibleLocalVariables.keys) {
+            index = accessibleLocalVariables[declaration.identifier]!!.index
+            val originalDeclaration = accessibleLocalVariables[declaration.identifier]!!.originalDeclaration
             val errorMessage = run {
-                val originalSignature = "${originalDeclaration.variableClassifier} ${originalDeclaration.identifier}: ${localVariables[declaration.identifier]!!.type.simpleName}"
+                val originalSignature = "${originalDeclaration.variableClassifier} ${originalDeclaration.identifier}: ${accessibleLocalVariables[declaration.identifier]!!.type.simpleName}"
                 val redeclaredSignature = "${declaration.variableClassifier} ${declaration.identifier}: ${variableType.simpleName}"
                 "Conflicting declarations: $originalSignature, $redeclaredSignature"
             }
@@ -902,9 +970,9 @@ class AprlFunctionVisitor(
                 val originalDeclaration = arguments.first { it.name == declaration.identifier }
                 WARNING("${declaration.variableClassifier} ${declaration.identifier} shadows name of parameter ${originalDeclaration.name}", declaration.context.simpleIdentifier().positionRange)
             }
-            index = localVariables.values.map { it.index }.nextOrMissing(arguments.size)
+            index = accessibleLocalVariables.values.map { it.index }.nextOrMissing(arguments.size)
             val isMutable = declaration.variableClassifier != VariableClassifier.VAL
-            localVariables[declaration.identifier!!] = LocalVariable(index, isMutable, variableType, declaration.expression != null, declaration)
+            currentLocalScope.localVariables[declaration.identifier!!] = LocalVariable(index, isMutable, variableType, declaration.expression != null, declaration)
         }
         if (!variableType.isAssignableFrom(types.lastOrNull() ?: variableType)) {
             // no direct assignment possible => conversion required
@@ -916,8 +984,9 @@ class AprlFunctionVisitor(
     private fun visitVariableAssignment(assignment: AprlVariableAssignment) {
         val expressionTree = assignment.expression!!.toTree()
         expressionTree.optimize()
-        if (assignment.identifier!! in localVariables.keys) {
-            val localVariable = localVariables[assignment.identifier]!!
+        val accessibleLocalVariables = getAllAccessibleLocalVariables()
+        if (assignment.identifier!! in accessibleLocalVariables.keys) {
+            val localVariable = accessibleLocalVariables[assignment.identifier]!!
             if (!localVariable.isMutable) {
                 // Variable cannot be reassigned
                 ERROR("'${assignment.identifier}' is immutable", assignment.context.simpleIdentifier().positionRange)
@@ -944,10 +1013,10 @@ class AprlFunctionVisitor(
             val ifStatement = conditionalStatement.ifStatements[i]
             visitExpressionOptimization(ifStatement.expression.toTree())
             if (aprl.lang.Boolean::class.java.isAssignableFrom(types.last())) {
-                visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "component1", "()Z", false)
+                visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "__value__", "()Z", false)
             } else if (!Boolean::class.java.isAssignableFrom(types.last())) {
                 visitImplicitConversion(aprl.lang.Boolean::class.java, ifStatement.expression)
-                visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "component1", "()Z", false)
+                visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "__value__", "()Z", false)
             }
             when (ifStatement.conditionalKeyword) {
                 ConditionalKeyword.IF -> {
@@ -957,15 +1026,17 @@ class AprlFunctionVisitor(
                     visitJumpInsn(IFNE, ifLabels.getOrNull(i + 1) ?: elseLabel ?: endLabel)
                 }
             }
-            // TODO: open new scope
+            enterLocalScope()
             ifStatement.statements.forEach(::visitLocalStatement)
-            // TODO: close scope
+            exitLocalScope()
             visitJumpInsn(GOTO, endLabel)
         }
         
         if (conditionalStatement.elseStatement != null) {
             visitLabel(elseLabel)
+            enterLocalScope()
             conditionalStatement.elseStatement!!.statements.forEach(::visitLocalStatement)
+            exitLocalScope()
         }
         visitLabel(endLabel)
     }
@@ -988,7 +1059,7 @@ class AprlFunctionVisitor(
     }
     
     private fun visitLocalStatement(statement: AprlLocalStatement) {
-        if (hasScopeDefinitivelyReturned) {
+        if (currentLocalScope.hasDefinitelyReturned) {
             ERROR("Unreachable code", statement.context.positionRange)
             return
         }
@@ -1007,13 +1078,13 @@ class AprlFunctionVisitor(
             }
         }
         if (statement.isDefinitiveReturnStatement()) {
-            hasScopeDefinitivelyReturned = true
+            currentLocalScope.hasDefinitelyReturned = true
         }
     }
     
     private fun visitFunctionBody(functionBody: AprlFunctionBody) {
         functionBody.statements.forEach(::visitLocalStatement)
-        if (!hasScopeDefinitivelyReturned) {
+        if (!currentLocalScope.hasDefinitelyReturned) {
             if (returnType == Void::class.java) {
                 visitInsn(RETURN)
             } else {

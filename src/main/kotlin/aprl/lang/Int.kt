@@ -8,16 +8,16 @@ data class Int(
     override val value: Long
 ) : Wrapper<Long>() {
     
-    @Verbatim
-    @OperatorFunction
-    fun compareTo(other: Int): kotlin.Int {
-        return value.compareTo(other.value)
+    fun compareTo(other: Int): Int {
+        return Int(value.compareTo(other.value).toLong())
     }
     
-    @Verbatim
-    @OperatorFunction
-    fun compareTo(other: Float): kotlin.Int {
-        return value.compareTo(other.value)
+    fun compareTo(other: Float): Int {
+        return Int(value.compareTo(other.value).toLong())
+    }
+    
+    fun __int__(): kotlin.Int {
+        return value.toInt()
     }
     
     @Verbatim

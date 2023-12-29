@@ -7,6 +7,8 @@ import aprl.util.AprlFunctionVisitor
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes.*
 import org.objectweb.asm.Type
+import org.objectweb.asm.util.TraceClassVisitor
+import java.io.PrintWriter
 
 class AprlJvmBytecodeCompiler(private val settings: AprlCompilerSettings) {
     

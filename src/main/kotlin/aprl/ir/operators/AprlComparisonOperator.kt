@@ -4,7 +4,8 @@ import aprl.grammar.AprlParser.ComparisonOperatorContext
 import java.lang.IllegalStateException
 
 sealed class AprlComparisonOperator(
-    override val operatorSymbol: String
+    override val operatorSymbol: String,
+    val isIntrinsic: Boolean
 ) : AprlOperator<ComparisonOperatorContext> {
     
     final override fun toString(): String {
@@ -13,35 +14,35 @@ sealed class AprlComparisonOperator(
     
     class AprlLessThanOperator(
         override val context: ComparisonOperatorContext
-    ) : AprlComparisonOperator("<")
+    ) : AprlComparisonOperator("<", false)
     
     class AprlLessEqualOperator(
         override val context: ComparisonOperatorContext
-    ) : AprlComparisonOperator("<=")
+    ) : AprlComparisonOperator("<=", false)
     
     class AprlGreaterThanOperator(
         override val context: ComparisonOperatorContext
-    ) : AprlComparisonOperator(">")
+    ) : AprlComparisonOperator(">", false)
     
     class AprlGreaterEqualOperator(
         override val context: ComparisonOperatorContext
-    ) : AprlComparisonOperator(">=")
+    ) : AprlComparisonOperator(">=", false)
     
     class AprlEqualOperator(
         override val context: ComparisonOperatorContext
-    ) : AprlComparisonOperator("==")
+    ) : AprlComparisonOperator("==", true)
     
     class AprlNotEqualOperator(
         override val context: ComparisonOperatorContext
-    ) : AprlComparisonOperator("!=")
+    ) : AprlComparisonOperator("!=", true)
     
     class AprlIdenticalOperator(
         override val context: ComparisonOperatorContext
-    ) : AprlComparisonOperator("===")
+    ) : AprlComparisonOperator("===", true)
     
     class AprlNotIdenticalOperator(
         override val context: ComparisonOperatorContext
-    ) : AprlComparisonOperator("!==")
+    ) : AprlComparisonOperator("!==", true)
     
     companion object {
         fun fromNode(ctx: ComparisonOperatorContext): AprlComparisonOperator {

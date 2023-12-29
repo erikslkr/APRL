@@ -1,6 +1,12 @@
 package aprl.util
 
-import aprl.lang.Wrapper
+import org.objectweb.asm.Type
+
+val Class<*>.descriptor: String
+    get() = Type.getType(this).descriptor
+
+val Class<*>.internalName: String
+    get() = Type.getType(this).internalName
 
 val Class<*>.defaultValue: Any?
     get() = when (this) {
@@ -47,6 +53,17 @@ fun Class<*>.aprlToJvmType(): Class<*> {
     }
 }
 
+fun Class<*>.aprlToPrimitiveType(): Class<*>? {
+    return when (this) {
+        aprl.lang.Boolean::class.java -> Boolean::class.java
+        aprl.lang.Char::class.java -> Character::class.java
+        aprl.lang.String::class.java -> String::class.java
+        aprl.lang.Float::class.java -> Double::class.java
+        aprl.lang.Int::class.java -> Long::class.java
+        else -> null
+    }
+}
+
 fun Class<*>.jvmToAprlType(): Class<*> {
     return when (this) {
         Int::class.java, java.lang.Integer::class.java, Long::class.java, java.lang.Long::class.java -> aprl.lang.Int::class.java
@@ -56,4 +73,12 @@ fun Class<*>.jvmToAprlType(): Class<*> {
         Boolean::class.java, java.lang.Boolean::class.java -> aprl.lang.Boolean::class.java
         else -> this
     }
+}
+
+fun Class<*>.isAprlAssignableFrom(other: Class<*>): Boolean {
+    return isAssignableFrom(other)
+            || aprlToJvmType().isAssignableFrom(other)
+            || jvmToAprlType().isAssignableFrom(other)
+            || isAssignableFrom(other.jvmToAprlType())
+            || isAssignableFrom(other.aprlToJvmType())
 }

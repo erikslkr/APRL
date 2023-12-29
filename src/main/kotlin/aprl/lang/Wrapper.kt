@@ -3,6 +3,11 @@ package aprl.lang
 abstract class Wrapper<T> {
     abstract val value: T
     
+    @Suppress("FunctionName")
+    fun __value__(): T {
+        return value
+    }
+    
     companion object {
         fun <T> wrap(value: T): Wrapper<*> {
             return when (value) {
