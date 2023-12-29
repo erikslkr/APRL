@@ -53,9 +53,7 @@ class AprlFunctionVisitor(
             inferiorExpressionHandler(operand)
             // implicit conversion to boolean if necessary
             if (!aprl.lang.Boolean::class.java.isAssignableFrom(types.last)) {
-                // TODO: are implicit conversions really a good idea?
                 visitImplicitConversion(aprl.lang.Boolean::class.java, operand)
-                throw Error("NUH UH")
             }
             // primitive value from boolean wrapper
             visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "component1", "()Z", false)
@@ -859,13 +857,16 @@ class AprlFunctionVisitor(
         visitImplicitConversion(expectedType, expression.toString(), expression.context.positionRange)
     }
     
-    private fun visitExpressionOptimization(expressionTree: ExpressionTree) {
+    private fun visitExpressionOptimization(expressionTree: ExpressionTree, implicitConversion: Class<*>? = null) {
         val beforeOptimization = expressionTree.deepCopy()
         expressionTree.optimize()
         if (expressionTree.childCount != beforeOptimization.childCount && "$expressionTree" != "$beforeOptimization") {
             WARNING("Expression '$beforeOptimization' can be evaluated to '$expressionTree'", beforeOptimization.positionRange)
         }
         visitExpression(expressionTree)
+        if (implicitConversion != null && !implicitConversion.isAssignableFrom(types.last())) {
+            visitImplicitConversion(implicitConversion, beforeOptimization)
+        }
     }
     
     private fun visitExpressionOrDefaultValue(expression: AprlExpression?, type: Class<*>) {
@@ -921,7 +922,7 @@ class AprlFunctionVisitor(
                 // Variable cannot be reassigned
                 ERROR("'${assignment.identifier}' is immutable", assignment.context.simpleIdentifier().positionRange)
             }
-            visitExpression(expressionTree)
+            visitExpressionOptimization(expressionTree)
             if (types.firstOrNull()?.let { localVariable.type.isAssignableFrom(it) } != true) {
                 visitImplicitConversion(localVariable.type, assignment.expression!!)
             }
@@ -933,18 +934,49 @@ class AprlFunctionVisitor(
         }
     }
     
+    private fun visitConditionalStatement(conditionalStatement: AprlConditionalStatement) {
+        val ifLabels = conditionalStatement.ifStatements.map { Label() }
+        val elseLabel = conditionalStatement.elseStatement?.let { Label() }
+        val endLabel = Label()
+        
+        for ((i, ifLabel) in ifLabels.withIndex()) {
+            visitLabel(ifLabel)
+            val ifStatement = conditionalStatement.ifStatements[i]
+            visitExpressionOptimization(ifStatement.expression.toTree())
+            if (aprl.lang.Boolean::class.java.isAssignableFrom(types.last())) {
+                visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "component1", "()Z", false)
+            } else if (!Boolean::class.java.isAssignableFrom(types.last())) {
+                visitImplicitConversion(aprl.lang.Boolean::class.java, ifStatement.expression)
+                visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "component1", "()Z", false)
+            }
+            when (ifStatement.conditionalKeyword) {
+                ConditionalKeyword.IF -> {
+                    visitJumpInsn(IFEQ, ifLabels.getOrNull(i + 1) ?: elseLabel ?: endLabel)
+                }
+                ConditionalKeyword.UNLESS -> {
+                    visitJumpInsn(IFNE, ifLabels.getOrNull(i + 1) ?: elseLabel ?: endLabel)
+                }
+            }
+            // TODO: open new scope
+            ifStatement.statements.forEach(::visitLocalStatement)
+            // TODO: close scope
+            visitJumpInsn(GOTO, endLabel)
+        }
+        
+        if (conditionalStatement.elseStatement != null) {
+            visitLabel(elseLabel)
+            conditionalStatement.elseStatement!!.statements.forEach(::visitLocalStatement)
+        }
+        visitLabel(endLabel)
+    }
+    
     private fun visitReturnStatement(returnStatement: AprlReturnStatement) {
         if (returnType != Void::class.java) {
             if (returnStatement.expression == null) {
                 ERROR("Return value of type '${returnType.simpleName}' expected", returnStatement.context.RETURN().symbol.positionRange)
                 visitInsn(ACONST_NULL)
             } else {
-                val expressionTree = returnStatement.expression!!.toTree()
-                val beforeOptimization = expressionTree.deepCopy()
-                visitExpressionOptimization(expressionTree)
-                if (!returnType.isAssignableFrom(types.last())) {
-                    visitImplicitConversion(returnType, beforeOptimization)
-                }
+                visitExpressionOptimization(returnStatement.expression!!.toTree(), returnType)
             }
             visitInsn(ARETURN)
         } else {
@@ -966,6 +998,9 @@ class AprlFunctionVisitor(
             }
             is AprlVariableAssignment -> {
                 visitVariableAssignment(statement)
+            }
+            is AprlConditionalStatement -> {
+                visitConditionalStatement(statement)
             }
             is AprlReturnStatement -> {
                 visitReturnStatement(statement)

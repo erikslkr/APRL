@@ -1,4 +1,4 @@
-// Generated from /home/erik/Documents/IdeaProjects/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
+// Generated from /Users/erik/Desktop/IntelliJ/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
 package aprl.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -23,6 +23,12 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitGlobalStatement(AprlParser.GlobalStatementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link AprlParser#localStatements}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLocalStatements(AprlParser.LocalStatementsContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link AprlParser#localStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -46,6 +52,24 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitVariableAssignment(AprlParser.VariableAssignmentContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#conditionalStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConditionalStatement(AprlParser.ConditionalStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#ifStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitIfStatement(AprlParser.IfStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#elseStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitElseStatement(AprlParser.ElseStatementContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AprlParser#returnStatement}.
 	 * @param ctx the parse tree

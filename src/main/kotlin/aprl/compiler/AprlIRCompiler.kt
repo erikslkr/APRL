@@ -5,6 +5,7 @@ import aprl.grammar.*
 import aprl.grammar.AprlParser.*
 import aprl.ir.expressions.*
 import aprl.ir.operators.*
+import org.antlr.v4.gui.Interpreter
 import org.antlr.v4.runtime.*
 import org.antlr.v4.gui.Trees
 import org.antlr.v4.runtime.tree.ParseTreeWalker
@@ -17,6 +18,12 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     private val currentFunctionDeclarations = Stack<AprlFunctionDeclaration>()
     private val currentValueParameters = Stack<AprlValueParameter>()
     private val currentFunctionBodies = Stack<AprlFunctionBody>()
+    
+    private val currentLocalStatementsBlocks = Stack<MutableList<AprlLocalStatement>>()
+    
+    private val currentConditionalStatements = Stack<AprlConditionalStatement>()
+    private val currentIfStatements = Stack<AprlIfStatement>()
+    private val currentElseStatements = Stack<AprlElseStatement>()
     
     private val currentVariableDeclarations = Stack<AprlVariableDeclaration>()
     private val currentVariableAssignments = Stack<AprlVariableAssignment>()
@@ -51,7 +58,11 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     }
     
     override fun enterFunctionBody(ctx: FunctionBodyContext) {
-        currentFunctionBodies.add(AprlFunctionBody(mutableListOf(), ctx))
+        currentFunctionBodies.add(AprlFunctionBody(ctx))
+    }
+    
+    override fun enterLocalStatements(ctx: LocalStatementsContext) {
+        currentLocalStatementsBlocks.push(mutableListOf())
     }
     
     override fun enterVariableDeclaration(ctx: VariableDeclarationContext) {
@@ -61,6 +72,23 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     
     override fun enterVariableAssignment(ctx: VariableAssignmentContext) {
         currentVariableAssignments.push(AprlVariableAssignment(null, null, ctx))
+    }
+    
+    override fun enterConditionalStatement(ctx: ConditionalStatementContext) {
+        currentConditionalStatements.push(AprlConditionalStatement(ctx))
+    }
+    
+    override fun enterIfStatement(ctx: IfStatementContext) {
+        val conditionalKeyword = when {
+            ctx.IF() != null -> ConditionalKeyword.IF
+            ctx.UNLESS() != null -> ConditionalKeyword.UNLESS
+            else -> throw InternalError("Conditional keyword should be IF or UNLESS")
+        }
+        currentIfStatements.push(AprlIfStatement(conditionalKeyword, ctx))
+    }
+    
+    override fun enterElseStatement(ctx: ElseStatementContext) {
+        currentElseStatements.push(AprlElseStatement(ctx))
     }
     
     override fun enterReturnStatement(ctx: ReturnStatementContext) {
@@ -156,11 +184,26 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
         currentFunctionDeclarations.peek().functionBody = functionBody
     }
     
+    override fun exitLocalStatements(ctx: LocalStatementsContext) {
+        val localStatements = currentLocalStatementsBlocks.pop()
+        when (ctx.parent) {
+            is IfStatementContext -> {
+                currentIfStatements.peek().statements = localStatements
+            }
+            is ElseStatementContext -> {
+                currentElseStatements.peek().statements = localStatements
+            }
+            is FunctionBodyContext -> {
+                currentFunctionBodies.peek().statements = localStatements
+            }
+        }
+    }
+    
     override fun exitVariableDeclaration(ctx: VariableDeclarationContext) {
         val variableDeclaration = currentVariableDeclarations.pop()
         when (ctx.parent) {
             is LocalStatementContext -> {
-                currentFunctionBodies.peek().statements.add(variableDeclaration)
+                currentLocalStatementsBlocks.peek().add(variableDeclaration)
             }
             is AprlFileContext -> {
                 ir.globalStatements.add(variableDeclaration)
@@ -170,12 +213,39 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     
     override fun exitVariableAssignment(ctx: VariableAssignmentContext) {
         val variableAssignment = currentVariableAssignments.pop()
-        currentFunctionBodies.peek().statements.add(variableAssignment)
+        currentLocalStatementsBlocks.peek().add(variableAssignment)
+    }
+    
+    override fun exitConditionalStatement(ctx: ConditionalStatementContext) {
+        val conditionalStatement = currentConditionalStatements.pop()
+        when (ctx.parent) {
+            is LocalStatementContext -> {
+                currentLocalStatementsBlocks.peek().add(conditionalStatement)
+            }
+        }
+    }
+    
+    override fun exitIfStatement(ctx: IfStatementContext) {
+        val ifStatement = currentIfStatements.pop()
+        when (ctx.parent) {
+            is ConditionalStatementContext -> {
+                currentConditionalStatements.peek().ifStatements.add(ifStatement)
+            }
+        }
+    }
+    
+    override fun exitElseStatement(ctx: ElseStatementContext) {
+        val elseStatement = currentElseStatements.pop()
+        when (ctx.parent) {
+            is ConditionalStatementContext -> {
+                currentConditionalStatements.peek().elseStatement = elseStatement
+            }
+        }
     }
     
     override fun exitReturnStatement(ctx: ReturnStatementContext) {
         val returnStatement = currentReturnStatements.pop()
-        currentFunctionBodies.peek().statements.add(returnStatement)
+        currentLocalStatementsBlocks.peek().add(returnStatement)
     }
     
     override fun exitExpression(ctx: ExpressionContext) {
@@ -195,6 +265,9 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
             }
             is ValueArgumentContext -> {
                 currentValueArgumentsArguments.peek().expression = expression
+            }
+            is IfStatementContext -> {
+                currentIfStatements.peek().expression = expression
             }
         }
     }

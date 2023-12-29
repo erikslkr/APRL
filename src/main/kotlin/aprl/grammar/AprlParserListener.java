@@ -1,4 +1,4 @@
-// Generated from /home/erik/Documents/IdeaProjects/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
+// Generated from /Users/erik/Desktop/IntelliJ/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
 package aprl.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -27,6 +27,16 @@ public interface AprlParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitGlobalStatement(AprlParser.GlobalStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#localStatements}.
+	 * @param ctx the parse tree
+	 */
+	void enterLocalStatements(AprlParser.LocalStatementsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#localStatements}.
+	 * @param ctx the parse tree
+	 */
+	void exitLocalStatements(AprlParser.LocalStatementsContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AprlParser#localStatement}.
 	 * @param ctx the parse tree
@@ -67,6 +77,36 @@ public interface AprlParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitVariableAssignment(AprlParser.VariableAssignmentContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#conditionalStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterConditionalStatement(AprlParser.ConditionalStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#conditionalStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitConditionalStatement(AprlParser.ConditionalStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#ifStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterIfStatement(AprlParser.IfStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#ifStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitIfStatement(AprlParser.IfStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#elseStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterElseStatement(AprlParser.ElseStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#elseStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitElseStatement(AprlParser.ElseStatementContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AprlParser#returnStatement}.
 	 * @param ctx the parse tree

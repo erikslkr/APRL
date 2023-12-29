@@ -8,6 +8,10 @@ NL: '\r'? '\n';
 VAR: 'var';
 VAL: 'val';
 
+IF: 'if';
+ELSE: 'else';
+UNLESS: 'unless';
+
 FUNCTION: 'function';
 RETURN: 'return';
 

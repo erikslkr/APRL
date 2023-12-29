@@ -9,9 +9,13 @@ globalStatement
     : variableDeclaration
     | functionDeclaration;
 
+localStatements
+    : NL* localStatement? (NL+ localStatement)* NL*;
+
 localStatement
     : variableDeclaration
     | variableAssignment
+    | conditionalStatement
     | returnStatement;
 
 variableDeclaration
@@ -23,6 +27,15 @@ variableClassifier
 
 variableAssignment
     : simpleIdentifier EQUAL expression;
+
+conditionalStatement
+    : ifStatement NL* (ELSE ifStatement NL*)* elseStatement*;
+
+ifStatement
+    : (IF | UNLESS) expression LCURLY localStatements RCURLY;
+
+elseStatement
+    : ELSE LCURLY localStatements RCURLY;
 
 returnStatement
     : RETURN expression?;
@@ -37,7 +50,7 @@ valueParameter
     : simpleIdentifier COLON type;
 
 functionBody
-    : LCURLY NL* localStatement? (NL+ localStatement)* NL* RCURLY;
+    : LCURLY localStatements RCURLY;
 
 expression
     : disjunctionExpression;
