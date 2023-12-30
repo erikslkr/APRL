@@ -1,4 +1,4 @@
-// Generated from /Users/erik/Desktop/IntelliJ/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
+// Generated from /home/erik/Documents/IdeaProjects/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
 package aprl.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -47,6 +47,26 @@ public interface AprlParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitLocalStatement(AprlParser.LocalStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#modifier}.
+	 * @param ctx the parse tree
+	 */
+	void enterModifier(AprlParser.ModifierContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#modifier}.
+	 * @param ctx the parse tree
+	 */
+	void exitModifier(AprlParser.ModifierContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#visibilityModifier}.
+	 * @param ctx the parse tree
+	 */
+	void enterVisibilityModifier(AprlParser.VisibilityModifierContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#visibilityModifier}.
+	 * @param ctx the parse tree
+	 */
+	void exitVisibilityModifier(AprlParser.VisibilityModifierContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AprlParser#variableDeclaration}.
 	 * @param ctx the parse tree

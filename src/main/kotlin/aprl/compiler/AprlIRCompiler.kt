@@ -170,6 +170,14 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
         currentIdentifiers.push(AprlIdentifier(ctx))
     }
     
+    override fun exitVisibilityModifier(ctx: VisibilityModifierContext) {
+        when (ctx.parent.parent) {
+            is FunctionDeclarationContext -> {
+                currentFunctionDeclarations.peek().modifiers.add(AprlVisibilityModifier.fromNode(ctx))
+            }
+        }
+    }
+    
     override fun exitFunctionDeclaration(ctx: FunctionDeclarationContext) {
         ir.globalStatements.add(currentFunctionDeclarations.pop())
     }

@@ -18,6 +18,15 @@ localStatement
     | conditionalStatement
     | returnStatement;
 
+modifier
+    : visibilityModifier;
+
+visibilityModifier
+    : PRIVATE
+    | PROTECTED
+    | INTERNAL
+    | PUBLIC;
+
 variableDeclaration
     : variableClassifier simpleIdentifier COLON type (EQUAL expression)?
     | variableClassifier simpleIdentifier EQUAL expression;
@@ -41,7 +50,7 @@ returnStatement
     : RETURN expression?;
 
 functionDeclaration
-    : FUNCTION simpleIdentifier valueParameters (RIGHT_ARROW type)? functionBody?;
+    : modifier* FUNCTION simpleIdentifier valueParameters (RIGHT_ARROW type)? functionBody?;
 
 valueParameters
     : LPAREN valueParameter? (COMMA valueParameter)* RPAREN;

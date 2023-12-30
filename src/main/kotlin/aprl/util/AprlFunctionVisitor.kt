@@ -81,8 +81,7 @@ class AprlFunctionVisitor(
             if (!aprl.lang.Boolean::class.java.isAssignableFrom(types.last)) {
                 visitImplicitConversion(aprl.lang.Boolean::class.java, operand)
             }
-            // primitive value from boolean wrapper
-            visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "__value__", "()Z", false)
+            unwrap<aprl.lang.Boolean>()
         }
         
         val operands = expressionTree.flatSplit { it is Operator }
@@ -254,13 +253,7 @@ class AprlFunctionVisitor(
                         false
                     )
                     if (!Boolean::class.java.isAssignableFrom(bestEqualsFunctionMatch.returnType)) {
-                        visitMethodInsn(
-                            INVOKEVIRTUAL,
-                            "aprl/lang/Boolean",
-                            "__value__",
-                            "()Z",
-                            false
-                        )
+                        unwrap<aprl.lang.Boolean>()
                     }
                 }
                 when (comparator) {
@@ -347,16 +340,9 @@ class AprlFunctionVisitor(
                 if (types.last().methods.none { it.name == "__value__" && it.parameterTypes.isEmpty() }) {
                     WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
                 } else {
-                    val primitiveType = types.last().aprlToPrimitiveType()
-                    if (primitiveType != null) {
-                        visitMethodInsn(
-                            INVOKEVIRTUAL,
-                            types.last().internalName,
-                            "__value__",
-                            "()${primitiveType.descriptor}",
-                            false
-                        )
-                        verbatimType = primitiveType
+                    if (Wrapper::class.java.isAssignableFrom(types.last())) {
+                        @Suppress("UNCHECKED_CAST")
+                        verbatimType = unwrap(types.last() as Class<out Wrapper<*>>)
                     } else {
                         WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
                     }
@@ -367,9 +353,9 @@ class AprlFunctionVisitor(
                 if (types.last().methods.none { it.name == "__value__" && it.parameterTypes.isEmpty() }) {
                     NO_VERBATIM()
                 } else {
-                    val primitiveType = types.last().aprlToPrimitiveType()
-                    if (primitiveType != null) {
-                        visitMethodInsn(INVOKEVIRTUAL, types.last().internalName, "__value__", "()$primitiveType", false)
+                    if (Wrapper::class.java.isAssignableFrom(types.last())) {
+                        @Suppress("UNCHECKED_CAST")
+                        val primitiveType = unwrap(types.last() as Class<out Wrapper<*>>)
                         if (primitiveType != verbatimType) {
                             NO_VERBATIM()
                         } else {
@@ -877,16 +863,27 @@ class AprlFunctionVisitor(
         types.add(wrapperType)
     }
     
+    private fun unwrap(wrapperType: Class<out Wrapper<*>>): Class<*> {
+        val primitiveType = wrapperType.aprlToPrimitiveType() ?: throw InternalError("Wrapper class without primitive wrapped type")
+        visitMethodInsn(
+            INVOKEVIRTUAL,
+            wrapperType.internalName,
+            "__value__",
+            "()${primitiveType.descriptor}",
+            false
+        )
+        return primitiveType
+    }
+    
+    private inline fun <reified T: Wrapper<*>> unwrap() {
+        unwrap(T::class.java)
+    }
+    
     private fun wrapOrUnwrap(from: Class<*>, to: Class<*>) {
         if (to.isAprlAssignableFrom(from) && !to.isAssignableFrom(from)) {
             if (Wrapper::class.java.isAssignableFrom(from)) {
-                visitMethodInsn(
-                    INVOKEVIRTUAL,
-                    from.internalName,
-                    "__value__",
-                    "()${from.aprlToPrimitiveType()!!.descriptor}",
-                    false
-                )
+                @Suppress("UNCHECKED_CAST")
+                unwrap(from as Class<out Wrapper<*>>)
             } else if (Wrapper::class.java.isAssignableFrom(to)) {
                 @Suppress("UNCHECKED_CAST")
                 visitUnspecificWrapperInitialization(from, to as Class<out Wrapper<*>>)
@@ -1012,15 +1009,21 @@ class AprlFunctionVisitor(
         val elseLabel = conditionalStatement.elseStatement?.let { Label() }
         val endLabel = Label()
         
+        // TODO: avoid unnecessary wrapping and immediate unwrapping of conditions
+        // (for example:       a - b == 0
+        //  gets compiled to   Boolean.valueOf(a.__minus__(b).equals(0)).__value__()
+        //  when it could be   a.__minus__(b).equals(0)
+        // (with an additional unwrap respectively, if `equals` returns aprl.lang.Boolean)
+        
         for ((i, ifLabel) in ifLabels.withIndex()) {
             visitLabel(ifLabel)
             val ifStatement = conditionalStatement.ifStatements[i]
             visitExpressionOptimization(ifStatement.expression.toTree())
             if (aprl.lang.Boolean::class.java.isAssignableFrom(types.last())) {
-                visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "__value__", "()Z", false)
+                unwrap<aprl.lang.Boolean>()
             } else if (!Boolean::class.java.isAssignableFrom(types.last())) {
                 visitImplicitConversion(aprl.lang.Boolean::class.java, ifStatement.expression)
-                visitMethodInsn(INVOKEVIRTUAL, "aprl/lang/Boolean", "__value__", "()Z", false)
+                unwrap<aprl.lang.Boolean>()
             }
             when (ifStatement.conditionalKeyword) {
                 ConditionalKeyword.IF -> {
@@ -1113,6 +1116,10 @@ class AprlFunctionVisitor(
     
     private fun visitReturnType(returnType: AprlTypeReference?) {
         this.returnType = returnType?.javaType ?: Void::class.java
+    }
+    
+    private fun visitModifiers(modifiers: List<AprlModifier<*>>) {
+    
     }
     
     fun visitFunctionDeclaration(functionDeclaration: AprlFunctionDeclaration) {

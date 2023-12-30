@@ -1,4 +1,4 @@
-// Generated from /Users/erik/Desktop/IntelliJ/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
+// Generated from /home/erik/Documents/IdeaProjects/APRL/src/main/kotlin/aprl/grammar/AprlParser.g4 by ANTLR 4.13.1
 package aprl.grammar;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -34,6 +34,18 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitLocalStatement(AprlParser.LocalStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#modifier}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitModifier(AprlParser.ModifierContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#visibilityModifier}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitVisibilityModifier(AprlParser.VisibilityModifierContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AprlParser#variableDeclaration}.
 	 * @param ctx the parse tree

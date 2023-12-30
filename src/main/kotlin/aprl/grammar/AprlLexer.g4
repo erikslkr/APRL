@@ -12,6 +12,11 @@ IF: 'if';
 ELSE: 'else';
 UNLESS: 'unless';
 
+PRIVATE: 'private';
+PROTECTED: 'protected';
+INTERNAL: 'internal';
+PUBLIC: 'public';
+
 FUNCTION: 'function';
 RETURN: 'return';
 
