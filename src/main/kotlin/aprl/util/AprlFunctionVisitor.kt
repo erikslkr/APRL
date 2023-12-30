@@ -15,6 +15,7 @@ import org.objectweb.asm.Type
 import java.lang.reflect.Method
 import java.util.ArrayDeque
 import java.util.Comparator
+import kotlin.math.max
 import kotlin.math.min
 
 class AprlFunctionVisitor(
@@ -53,7 +54,7 @@ class AprlFunctionVisitor(
         if (maxLocalVariables.size <= index) {
             maxLocalVariables.add(currentMaxLocals)
         } else {
-            maxLocalVariables[index] = currentMaxLocals
+            maxLocalVariables[index] = max(maxLocalVariables[index], currentMaxLocals)
         }
         currentLocalScope = currentLocalScope.parent ?: throw InternalError("More local scopes have been exited than entered")
     }
@@ -262,7 +263,6 @@ class AprlFunctionVisitor(
                         )
                     }
                 }
-                // TODO: before comparing, rhs comparand (current top-of-stack) might need wrapping/unwrapping
                 when (comparator) {
                     is AprlComparisonOperator.AprlIdenticalOperator -> {
                         visitJumpInsn(opcodes[0], jumpLabel)
