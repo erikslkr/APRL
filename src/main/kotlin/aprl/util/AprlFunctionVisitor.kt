@@ -1009,12 +1009,6 @@ class AprlFunctionVisitor(
         val elseLabel = conditionalStatement.elseStatement?.let { Label() }
         val endLabel = Label()
         
-        // TODO: avoid unnecessary wrapping and immediate unwrapping of conditions
-        // (for example:       a - b == 0
-        //  gets compiled to   Boolean.valueOf(a.__minus__(b).equals(0)).__value__()
-        //  when it could be   a.__minus__(b).equals(0)
-        // (with an additional unwrap respectively, if `equals` returns aprl.lang.Boolean)
-        
         for ((i, ifLabel) in ifLabels.withIndex()) {
             visitLabel(ifLabel)
             val ifStatement = conditionalStatement.ifStatements[i]
@@ -1116,10 +1110,6 @@ class AprlFunctionVisitor(
     
     private fun visitReturnType(returnType: AprlTypeReference?) {
         this.returnType = returnType?.javaType ?: Void::class.java
-    }
-    
-    private fun visitModifiers(modifiers: List<AprlModifier<*>>) {
-    
     }
     
     fun visitFunctionDeclaration(functionDeclaration: AprlFunctionDeclaration) {
