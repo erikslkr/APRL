@@ -6,11 +6,12 @@ import aprl.ir.operators.AprlBitwiseOperator
 import aprl.util.ExpressionTree
 
 data class AprlBitwiseExpression(
-    var bitwiseExpression: AprlBitwiseExpression?,
     var bitwiseOperator: AprlBitwiseOperator?,
-    var additiveExpression: AprlAdditiveExpression?,
     override val context: BitwiseExpressionContext
 ) : AprlNode<BitwiseExpressionContext> {
+    
+    var bitwiseExpression: AprlBitwiseExpression? = null
+    var additiveExpression: AprlAdditiveExpression? = null
     
     override fun toString(): String {
         if (bitwiseOperator == null) {

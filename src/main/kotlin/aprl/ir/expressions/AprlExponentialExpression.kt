@@ -6,11 +6,12 @@ import aprl.ir.operators.AprlExponentialOperator
 import aprl.util.ExpressionTree
 
 data class AprlExponentialExpression(
-    var exponentialExpression: AprlExponentialExpression?,
     val exponentialOperator: AprlExponentialOperator?,
-    var unaryPostfixedExpression: AprlUnaryPostfixedExpression?,
     override val context: ExponentialExpressionContext
 ) : AprlNode<ExponentialExpressionContext> {
+    
+    var exponentialExpression: AprlExponentialExpression? = null
+    var unaryPostfixedExpression: AprlUnaryPostfixedExpression? = null
     
     override fun toString(): String {
         if (exponentialOperator == null) {

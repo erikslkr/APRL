@@ -6,11 +6,12 @@ import aprl.ir.operators.AprlMultiplicativeOperator
 import aprl.util.ExpressionTree
 
 data class AprlMultiplicativeExpression(
-    var multiplicativeExpression: AprlMultiplicativeExpression?,
     var multiplicativeOperator: AprlMultiplicativeOperator?,
-    var unaryPrefixedExpression: AprlUnaryPrefixedExpression?,
     override val context: MultiplicativeExpressionContext
 ) : AprlNode<MultiplicativeExpressionContext> {
+    
+    var multiplicativeExpression: AprlMultiplicativeExpression? = null
+    var unaryPrefixedExpression: AprlUnaryPrefixedExpression? = null
     
     override fun toString(): String {
         if (multiplicativeOperator == null) {

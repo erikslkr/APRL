@@ -835,7 +835,7 @@ class AprlFunctionVisitor(
                     types.add(localVariable.type)
                 } else if (argument != null) {
                     visitVarInsn(ALOAD, arguments.indexOf(argument))
-                    types.add(argument.type!!.javaType)
+                    types.add(argument.type.javaType)
                 } else if ((content.context.parent.parent as UnaryPostfixedExpressionContext).unaryPostfix()?.valueArguments() != null) {
                     // TODO (LATER): identifier could refer to instance functions instead of just static ones
                     val functionCandidates = ownerFile.findStaticFunctions(content)
@@ -855,7 +855,7 @@ class AprlFunctionVisitor(
     }
     
     private fun visitValueArgument(valueArgument: AprlValueArgument) {
-        visitExpressionOptimization(valueArgument.expression!!.toTree())
+        visitExpressionOptimization(valueArgument.expression.toTree())
         // TODO: consider case that a JVM type is expected, but APRL type is passed
     }
     
@@ -972,7 +972,7 @@ class AprlFunctionVisitor(
             }
             index = accessibleLocalVariables.values.map { it.index }.nextOrMissing(arguments.size)
             val isMutable = declaration.variableClassifier != VariableClassifier.VAL
-            currentLocalScope.localVariables[declaration.identifier!!] = LocalVariable(index, isMutable, variableType, declaration.expression != null, declaration)
+            currentLocalScope.localVariables[declaration.identifier] = LocalVariable(index, isMutable, variableType, declaration.expression != null, declaration)
         }
         if (!variableType.isAssignableFrom(types.lastOrNull() ?: variableType)) {
             // no direct assignment possible => conversion required
@@ -982,24 +982,28 @@ class AprlFunctionVisitor(
     }
     
     private fun visitVariableAssignment(assignment: AprlVariableAssignment) {
-        val expressionTree = assignment.expression!!.toTree()
+        val expressionTree = assignment.expression.toTree()
         expressionTree.optimize()
         val accessibleLocalVariables = getAllAccessibleLocalVariables()
-        if (assignment.identifier!! in accessibleLocalVariables.keys) {
-            val localVariable = accessibleLocalVariables[assignment.identifier]!!
-            if (!localVariable.isMutable) {
-                // Variable cannot be reassigned
-                ERROR("'${assignment.identifier}' is immutable", assignment.context.simpleIdentifier().positionRange)
+        when (assignment.identifier) {
+            in accessibleLocalVariables.keys -> {
+                val localVariable = accessibleLocalVariables[assignment.identifier]!!
+                if (!localVariable.isMutable) {
+                    // Variable cannot be reassigned
+                    ERROR("'${assignment.identifier}' is immutable", assignment.context.simpleIdentifier().positionRange)
+                }
+                visitExpressionOptimization(expressionTree)
+                if (types.firstOrNull()?.let { localVariable.type.isAssignableFrom(it) } != true) {
+                    visitImplicitConversion(localVariable.type, assignment.expression)
+                }
+                visitVarInsn(ASTORE, localVariable.index)
             }
-            visitExpressionOptimization(expressionTree)
-            if (types.firstOrNull()?.let { localVariable.type.isAssignableFrom(it) } != true) {
-                visitImplicitConversion(localVariable.type, assignment.expression!!)
+            in arguments.map { it.name } -> {
+                ERROR("Parameter '${assignment.identifier}' cannot be reassigned", assignment.context.simpleIdentifier().positionRange)
             }
-            visitVarInsn(ASTORE, localVariable.index)
-        } else if (assignment.identifier!! in arguments.map { it.name!! }) {
-            ERROR("Parameter '${assignment.identifier}' cannot be reassigned", assignment.context.simpleIdentifier().positionRange)
-        } else {
-            ERROR("Unresolved reference '${assignment.identifier}'", assignment.context.simpleIdentifier().positionRange)
+            else -> {
+                ERROR("Unresolved reference '${assignment.identifier}'", assignment.context.simpleIdentifier().positionRange)
+            }
         }
     }
     
@@ -1099,8 +1103,8 @@ class AprlFunctionVisitor(
     
     private fun visitArguments(arguments: List<AprlValueParameter>) {
         arguments.forEach(::visitArgument)
-        this.arguments.duplicates { it.name!! }.forEach {
-            val errorMessage = "Conflicting declarations: ${it.joinToString(", p", "P") { param -> "arameter ${param.name!!}: ${param.type!!}" }}"
+        this.arguments.duplicates { it.name }.forEach {
+            val errorMessage = "Conflicting declarations: ${it.joinToString(", p", "P") { param -> "arameter ${param.name}: ${param.type}" }}"
             for (redeclaration in it) {
                 ERROR(errorMessage, redeclaration.context.simpleIdentifier().positionRange)
             }
@@ -1115,11 +1119,9 @@ class AprlFunctionVisitor(
         visitCode()
         visitArguments(functionDeclaration.valueParameters)
         visitReturnType(functionDeclaration.returnType)
-        functionDeclaration.functionBody?.also {
-            visitFunctionBody(it)
-        }
+        visitFunctionBody(functionDeclaration.functionBody)
         visitMaxs(4) // TODO: calculate max stack size
         visitEnd()
     }
-
+    
 }

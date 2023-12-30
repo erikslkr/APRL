@@ -5,16 +5,17 @@ import aprl.ir.expressions.AprlDisjunctionExpression
 import aprl.util.ExpressionTree
 
 data class AprlExpression(
-    var disjunctionExpression: AprlDisjunctionExpression?,
     override val context: ExpressionContext
 ) : AprlNode<ExpressionContext> {
+    
+    lateinit var disjunctionExpression: AprlDisjunctionExpression
     
     override fun toString(): String {
         return "$disjunctionExpression"
     }
     
     fun toTree(): ExpressionTree {
-        return disjunctionExpression!!.toTree()
+        return disjunctionExpression.toTree()
     }
     
 }

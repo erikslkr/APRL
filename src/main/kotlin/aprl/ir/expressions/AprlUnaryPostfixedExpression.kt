@@ -6,11 +6,12 @@ import aprl.ir.AprlUnaryPostfix
 import aprl.util.ExpressionTree
 
 data class AprlUnaryPostfixedExpression(
-    var unaryPostfix: AprlUnaryPostfix<*>?,
-    var unaryPostfixedExpression: AprlUnaryPostfixedExpression?,
-    var atomicExpression: AprlAtomicExpression?,
     override val context: UnaryPostfixedExpressionContext
 ) : AprlNode<UnaryPostfixedExpressionContext> {
+    
+    var unaryPostfix: AprlUnaryPostfix<*>? = null
+    var unaryPostfixedExpression: AprlUnaryPostfixedExpression? = null
+    var atomicExpression: AprlAtomicExpression? = null
     
     override fun toString(): String {
         if (unaryPostfix == null) {

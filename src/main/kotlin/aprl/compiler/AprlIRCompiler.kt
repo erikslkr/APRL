@@ -50,11 +50,11 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     private val currentIdentifiers = Stack<AprlIdentifier>()
     
     override fun enterFunctionDeclaration(ctx: FunctionDeclarationContext) {
-        currentFunctionDeclarations.add(AprlFunctionDeclaration(null, mutableListOf(), null, null, ctx))
+        currentFunctionDeclarations.add(AprlFunctionDeclaration(ctx))
     }
     
     override fun enterValueParameter(ctx: ValueParameterContext) {
-        currentValueParameters.add(AprlValueParameter(null, null, ctx))
+        currentValueParameters.add(AprlValueParameter(ctx))
     }
     
     override fun enterFunctionBody(ctx: FunctionBodyContext) {
@@ -67,11 +67,11 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     
     override fun enterVariableDeclaration(ctx: VariableDeclarationContext) {
         val variableClassifier = VariableClassifier.fromNode(ctx.variableClassifier())
-        currentVariableDeclarations.push(AprlVariableDeclaration(variableClassifier, null, null, null, ctx))
+        currentVariableDeclarations.push(AprlVariableDeclaration(variableClassifier, ctx))
     }
     
     override fun enterVariableAssignment(ctx: VariableAssignmentContext) {
-        currentVariableAssignments.push(AprlVariableAssignment(null, null, ctx))
+        currentVariableAssignments.push(AprlVariableAssignment(ctx))
     }
     
     override fun enterConditionalStatement(ctx: ConditionalStatementContext) {
@@ -92,82 +92,82 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     }
     
     override fun enterReturnStatement(ctx: ReturnStatementContext) {
-        currentReturnStatements.push(AprlReturnStatement(null, ctx))
+        currentReturnStatements.push(AprlReturnStatement(ctx))
     }
     
     override fun enterExpression(ctx: ExpressionContext) {
-        currentExpressions.push(AprlExpression(null, ctx))
+        currentExpressions.push(AprlExpression(ctx))
     }
     
     override fun enterDisjunctionExpression(ctx: DisjunctionExpressionContext) {
-        currentDisjunctionExpressions.push(AprlDisjunctionExpression(null, null, null, ctx))
+        currentDisjunctionExpressions.push(AprlDisjunctionExpression(ctx))
     }
     
     override fun enterConjunctionExpression(ctx: ConjunctionExpressionContext) {
-        currentConjunctionExpressions.push(AprlConjunctionExpression(null, null, null, ctx))
+        currentConjunctionExpressions.push(AprlConjunctionExpression(ctx))
     }
     
     override fun enterComparisonExpression(ctx: ComparisonExpressionContext) {
-        currentComparisonExpressions.push(AprlComparisonExpression(null, null, null, ctx))
+        currentComparisonExpressions.push(AprlComparisonExpression(ctx))
     }
     
     override fun enterBitwiseExpression(ctx: BitwiseExpressionContext) {
         val bitwiseOperator = ctx.bitwiseOperator()?.let {
             AprlBitwiseOperator.fromNode(it)
         }
-        currentBitwiseExpressions.push(AprlBitwiseExpression(null, bitwiseOperator, null, ctx))
+        currentBitwiseExpressions.push(AprlBitwiseExpression(bitwiseOperator, ctx))
     }
     
     override fun enterAdditiveExpression(ctx: AdditiveExpressionContext) {
         val additiveOperator = ctx.additiveOperator()?.let {
             AprlAdditiveOperator.fromNode(it)
         }
-        currentAdditiveExpressions.push(AprlAdditiveExpression(null, additiveOperator, null, ctx))
+        currentAdditiveExpressions.push(AprlAdditiveExpression(additiveOperator, ctx))
     }
     
     override fun enterMultiplicativeExpression(ctx: MultiplicativeExpressionContext) {
         val multiplicativeOperator = ctx.multiplicativeOperator()?.let {
             AprlMultiplicativeOperator.fromNode(it)
         }
-        currentMultiplicativeExpressions.push(AprlMultiplicativeExpression(null, multiplicativeOperator, null, ctx))
+        currentMultiplicativeExpressions.push(AprlMultiplicativeExpression(multiplicativeOperator, ctx))
     }
     
     override fun enterUnaryPrefixedExpression(ctx: UnaryPrefixedExpressionContext) {
         val unaryPrefix = ctx.unaryPrefix()?.let {
             AprlUnaryPrefixOperator.fromNode(it)
         }
-        currentUnaryPrefixedExpressions.push(AprlUnaryPrefixedExpression(unaryPrefix, null, ctx))
+        currentUnaryPrefixedExpressions.push(AprlUnaryPrefixedExpression(unaryPrefix, ctx))
     }
     
     override fun enterExponentialExpression(ctx: ExponentialExpressionContext) {
         val exponentialOperator = ctx.exponentialOperator()?.let {
             AprlExponentialOperator.fromNode(it)
         }
-        currentExponentialExpressions.push(AprlExponentialExpression(null, exponentialOperator, null, ctx))
+        currentExponentialExpressions.push(AprlExponentialExpression(exponentialOperator, ctx))
     }
     
     override fun enterUnaryPostfixedExpression(ctx: UnaryPostfixedExpressionContext) {
-        currentUnaryPostfixedExpressions.push(AprlUnaryPostfixedExpression(null, null, null, ctx))
+        currentUnaryPostfixedExpressions.push(AprlUnaryPostfixedExpression(ctx))
     }
     
     override fun enterValueArguments(ctx: ValueArgumentsContext) {
-        currentValueArguments.push(AprlValueArguments(mutableListOf(), ctx))
+        currentValueArguments.push(AprlValueArguments(ctx))
     }
     
     override fun enterValueArgument(ctx: ValueArgumentContext) {
-        currentValueArgumentsArguments.push(AprlValueArgument(null, ctx))
+        currentValueArgumentsArguments.push(AprlValueArgument(ctx))
     }
     
     override fun enterAtomicExpression(ctx: AtomicExpressionContext) {
-        currentAtomicExpressions.push(AprlAtomicExpression(null, null, null, ctx))
+        currentAtomicExpressions.push(AprlAtomicExpression(ctx))
     }
     
     override fun enterType(ctx: TypeContext) {
-        currentTypeReferences.push(AprlTypeReference(null, ctx))
+        currentTypeReferences.push(AprlTypeReference(ctx))
     }
     
     override fun enterIdentifier(ctx: IdentifierContext) {
-        currentIdentifiers.push(AprlIdentifier(context = ctx))
+        currentIdentifiers.push(AprlIdentifier(ctx))
     }
     
     override fun exitFunctionDeclaration(ctx: FunctionDeclarationContext) {

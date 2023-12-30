@@ -7,9 +7,10 @@ import aprl.util.ExpressionTree
 
 data class AprlUnaryPrefixedExpression(
     var unaryPrefix: AprlUnaryPrefixOperator?,
-    var exponentialExpression: AprlExponentialExpression?,
     override val context: UnaryPrefixedExpressionContext
 ) : AprlNode<UnaryPrefixedExpressionContext> {
+    
+    var exponentialExpression: AprlExponentialExpression? = null
     
     override fun toString(): String {
         if (unaryPrefix == null) {

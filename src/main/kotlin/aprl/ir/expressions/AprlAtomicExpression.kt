@@ -8,11 +8,12 @@ import aprl.ir.AprlNode
 import aprl.util.ExpressionTree
 
 data class AprlAtomicExpression(
-    var parenthesizedExpression: AprlExpression?,
-    var identifier: AprlIdentifier?,
-    var literal: AprlLiteral<*>?,
     override val context: AtomicExpressionContext
 ): AprlNode<AtomicExpressionContext> {
+    
+    var parenthesizedExpression: AprlExpression? = null
+    var identifier: AprlIdentifier? = null
+    var literal: AprlLiteral<*>? = null
     
     override fun toString(): String {
         if (parenthesizedExpression != null) {

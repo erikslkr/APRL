@@ -5,11 +5,12 @@ import aprl.grammar.AprlParser.VariableDeclarationContext
 
 data class AprlVariableDeclaration(
     val variableClassifier: VariableClassifier,
-    var identifier: String?,
-    var typeAnnotation: AprlTypeReference?,
-    var expression: AprlExpression?,
     override val context: VariableDeclarationContext
 ) : AprlGlobalStatement, AprlLocalStatement, AprlNode<VariableDeclarationContext> {
+    
+    lateinit var identifier: String
+    var typeAnnotation: AprlTypeReference? = null
+    var expression: AprlExpression? = null
     
     override fun toString(): String {
         return if (typeAnnotation == null) {
