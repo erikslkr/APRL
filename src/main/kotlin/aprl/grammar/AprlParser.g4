@@ -16,6 +16,7 @@ localStatement
     : variableDeclaration
     | variableAssignment
     | conditionalStatement
+    | whileStatement
     | returnStatement;
 
 modifier
@@ -45,6 +46,9 @@ ifStatement
 
 elseStatement
     : ELSE LCURLY localStatements RCURLY;
+
+whileStatement
+    : WHILE expression LCURLY localStatements RCURLY;
 
 returnStatement
     : RETURN expression?;

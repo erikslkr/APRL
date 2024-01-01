@@ -128,6 +128,16 @@ public interface AprlParserListener extends ParseTreeListener {
 	 */
 	void exitElseStatement(AprlParser.ElseStatementContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link AprlParser#whileStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterWhileStatement(AprlParser.WhileStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#whileStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitWhileStatement(AprlParser.WhileStatementContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link AprlParser#returnStatement}.
 	 * @param ctx the parse tree
 	 */

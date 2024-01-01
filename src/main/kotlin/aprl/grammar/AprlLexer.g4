@@ -12,6 +12,8 @@ IF: 'if';
 ELSE: 'else';
 UNLESS: 'unless';
 
+WHILE: 'while';
+
 PRIVATE: 'private';
 PROTECTED: 'protected';
 INTERNAL: 'internal';

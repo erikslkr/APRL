@@ -5,8 +5,8 @@ import aprl.ir.AprlNode
 import aprl.ir.operators.AprlUnaryPrefixOperator
 import aprl.util.ExpressionTree
 
-data class AprlUnaryPrefixedExpression(
-    var unaryPrefix: AprlUnaryPrefixOperator?,
+class AprlUnaryPrefixedExpression(
+    private val unaryPrefix: AprlUnaryPrefixOperator?,
     override val context: UnaryPrefixedExpressionContext
 ) : AprlNode<UnaryPrefixedExpressionContext> {
     
@@ -16,7 +16,7 @@ data class AprlUnaryPrefixedExpression(
         if (unaryPrefix == null) {
             return "$exponentialExpression"
         }
-        return "${unaryPrefix!!.operatorSymbol}$exponentialExpression"
+        return "${unaryPrefix.operatorSymbol}$exponentialExpression"
     }
     
     fun toTree(): ExpressionTree {

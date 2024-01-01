@@ -25,6 +25,8 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     private val currentIfStatements = Stack<AprlIfStatement>()
     private val currentElseStatements = Stack<AprlElseStatement>()
     
+    private val currentWhileStatements = Stack<AprlWhileStatement>()
+    
     private val currentVariableDeclarations = Stack<AprlVariableDeclaration>()
     private val currentVariableAssignments = Stack<AprlVariableAssignment>()
     
@@ -80,8 +82,8 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     
     override fun enterIfStatement(ctx: IfStatementContext) {
         val conditionalKeyword = when {
-            ctx.IF() != null -> ConditionalKeyword.IF
-            ctx.UNLESS() != null -> ConditionalKeyword.UNLESS
+            ctx.IF() != null -> AprlIfStatement.ConditionalKeyword.IF
+            ctx.UNLESS() != null -> AprlIfStatement.ConditionalKeyword.UNLESS
             else -> throw InternalError("Conditional keyword should be IF or UNLESS")
         }
         currentIfStatements.push(AprlIfStatement(conditionalKeyword, ctx))
@@ -89,6 +91,10 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     
     override fun enterElseStatement(ctx: ElseStatementContext) {
         currentElseStatements.push(AprlElseStatement(ctx))
+    }
+    
+    override fun enterWhileStatement(ctx: WhileStatementContext) {
+        currentWhileStatements.push(AprlWhileStatement(ctx))
     }
     
     override fun enterReturnStatement(ctx: ReturnStatementContext) {
@@ -201,6 +207,9 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
             is ElseStatementContext -> {
                 currentElseStatements.peek().statements = localStatements
             }
+            is WhileStatementContext -> {
+                currentWhileStatements.peek().statements = localStatements
+            }
             is FunctionBodyContext -> {
                 currentFunctionBodies.peek().statements = localStatements
             }
@@ -251,6 +260,15 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
         }
     }
     
+    override fun exitWhileStatement(ctx: WhileStatementContext) {
+        val whileStatement = currentWhileStatements.pop()
+        when (ctx.parent) {
+            is LocalStatementContext -> {
+                currentLocalStatementsBlocks.peek().add(whileStatement)
+            }
+        }
+    }
+    
     override fun exitReturnStatement(ctx: ReturnStatementContext) {
         val returnStatement = currentReturnStatements.pop()
         currentLocalStatementsBlocks.peek().add(returnStatement)
@@ -276,6 +294,9 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
             }
             is IfStatementContext -> {
                 currentIfStatements.peek().expression = expression
+            }
+            is WhileStatementContext -> {
+                currentWhileStatements.peek().expression = expression
             }
         }
     }

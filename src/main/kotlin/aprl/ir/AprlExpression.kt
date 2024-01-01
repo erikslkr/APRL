@@ -4,7 +4,7 @@ import aprl.grammar.AprlParser.ExpressionContext
 import aprl.ir.expressions.AprlDisjunctionExpression
 import aprl.util.ExpressionTree
 
-data class AprlExpression(
+class AprlExpression(
     override val context: ExpressionContext
 ) : AprlNode<ExpressionContext> {
     

@@ -2,7 +2,7 @@ package aprl.ir
 
 import aprl.grammar.AprlParser.IdentifierContext
 
-data class AprlIdentifier(
+class AprlIdentifier(
     override val context: IdentifierContext
 ) : AprlNode<IdentifierContext> {
     

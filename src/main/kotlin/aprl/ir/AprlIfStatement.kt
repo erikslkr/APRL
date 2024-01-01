@@ -18,9 +18,9 @@ class AprlIfStatement(
         return statements.any { it.isDefinitiveReturnStatement() }
     }
     
-}
-
-enum class ConditionalKeyword {
-    IF,
-    UNLESS
+    enum class ConditionalKeyword {
+        IF,
+        UNLESS
+    }
+    
 }

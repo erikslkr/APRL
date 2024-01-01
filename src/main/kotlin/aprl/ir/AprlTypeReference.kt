@@ -2,7 +2,7 @@ package aprl.ir
 
 import aprl.grammar.AprlParser.TypeContext
 
-data class AprlTypeReference(
+class AprlTypeReference(
     override val context: TypeContext
 ) : AprlNode<TypeContext> {
     

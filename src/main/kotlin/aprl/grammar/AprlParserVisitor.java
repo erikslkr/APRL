@@ -83,6 +83,12 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitElseStatement(AprlParser.ElseStatementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link AprlParser#whileStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitWhileStatement(AprlParser.WhileStatementContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link AprlParser#returnStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

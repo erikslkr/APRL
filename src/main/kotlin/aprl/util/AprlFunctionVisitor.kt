@@ -45,6 +45,12 @@ class AprlFunctionVisitor(
         rawTypes = false
     }
     
+    private inline fun localScoped(action: () -> Unit) {
+        enterLocalScope()
+        action()
+        exitLocalScope()
+    }
+    
     private fun getAllAccessibleLocalVariables(): LocalVariables {
         val accessibleLocalVariables = emptyLocalVariables()
         var localScope: LocalScope? = currentLocalScope
@@ -946,6 +952,18 @@ class AprlFunctionVisitor(
         visitImplicitConversion(T::class.java, expression.toString(), expression.context.positionRange)
     }
     
+    private fun visitPrimitivePredicate(expression: AprlExpression) {
+        withRawTypes {
+            visitExpressionOptimization(expression.toTree())
+        }
+        if (AprlBoolean::class.java.isAssignableFrom(types.last())) {
+            unwrap<AprlBoolean>()
+        } else if (!Boolean::class.java.isAssignableFrom(types.last())) {
+            visitImplicitConversion<AprlBoolean>(expression)
+            unwrap<AprlBoolean>()
+        }
+    }
+    
     private fun visitExpressionOptimization(expressionTree: ExpressionTree, implicitConversion: Class<*>? = null) {
         val beforeOptimization = expressionTree.deepCopy()
         expressionTree.optimize()
@@ -1034,44 +1052,43 @@ class AprlFunctionVisitor(
         val elseLabel = conditionalStatement.elseStatement?.let { Label() }
         val endLabel = Label()
         
-        // TODO: avoid unnecessary wrapping and immediate unwrapping of conditions
-        // (for example:       a - b == 0
-        //  gets compiled to   Boolean.valueOf(a.__minus__(b).equals(0)).__value__()
-        //  when it could be   a.__minus__(b).equals(0)
-        // (with an additional unwrap respectively, if `equals` returns AprlBoolean)
-        
         for ((i, ifLabel) in ifLabels.withIndex()) {
             visitLabel(ifLabel)
             val ifStatement = conditionalStatement.ifStatements[i]
-            withRawTypes {
-                visitExpressionOptimization(ifStatement.expression.toTree())
-            }
-            if (AprlBoolean::class.java.isAssignableFrom(types.last())) {
-                unwrap<AprlBoolean>()
-            } else if (!Boolean::class.java.isAssignableFrom(types.last())) {
-                visitImplicitConversion<AprlBoolean>(ifStatement.expression)
-                unwrap<AprlBoolean>()
-            }
+            visitPrimitivePredicate(ifStatement.expression)
             when (ifStatement.conditionalKeyword) {
-                ConditionalKeyword.IF -> {
+                AprlIfStatement.ConditionalKeyword.IF -> {
                     visitJumpInsn(IFEQ, ifLabels.getOrNull(i + 1) ?: elseLabel ?: endLabel)
                 }
-                ConditionalKeyword.UNLESS -> {
+                AprlIfStatement.ConditionalKeyword.UNLESS -> {
                     visitJumpInsn(IFNE, ifLabels.getOrNull(i + 1) ?: elseLabel ?: endLabel)
                 }
             }
-            enterLocalScope()
-            ifStatement.statements.forEach(::visitLocalStatement)
-            exitLocalScope()
+            localScoped {
+                ifStatement.statements.forEach(::visitLocalStatement)
+            }
             visitJumpInsn(GOTO, endLabel)
         }
         
         if (conditionalStatement.elseStatement != null) {
             visitLabel(elseLabel)
-            enterLocalScope()
-            conditionalStatement.elseStatement!!.statements.forEach(::visitLocalStatement)
-            exitLocalScope()
+            localScoped {
+                conditionalStatement.elseStatement!!.statements.forEach(::visitLocalStatement)
+            }
         }
+        visitLabel(endLabel)
+    }
+    
+    private fun visitWhileStatement(whileStatement: AprlWhileStatement) {
+        val startLabel = Label()
+        val endLabel = Label()
+        visitLabel(startLabel)
+        visitPrimitivePredicate(whileStatement.expression)
+        visitJumpInsn(IFEQ, endLabel)
+        localScoped {
+            whileStatement.statements.forEach(::visitLocalStatement)
+        }
+        visitJumpInsn(GOTO, startLabel)
         visitLabel(endLabel)
     }
     
@@ -1106,6 +1123,9 @@ class AprlFunctionVisitor(
             }
             is AprlConditionalStatement -> {
                 visitConditionalStatement(statement)
+            }
+            is AprlWhileStatement -> {
+                visitWhileStatement(statement)
             }
             is AprlReturnStatement -> {
                 visitReturnStatement(statement)

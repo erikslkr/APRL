@@ -5,8 +5,8 @@ import aprl.ir.operators.AprlAdditiveOperator
 import aprl.ir.AprlNode
 import aprl.util.ExpressionTree
 
-data class AprlAdditiveExpression(
-    var additiveOperator: AprlAdditiveOperator?,
+class AprlAdditiveExpression(
+    private val additiveOperator: AprlAdditiveOperator?,
     override val context: AdditiveExpressionContext
 ) : AprlNode<AdditiveExpressionContext> {
     

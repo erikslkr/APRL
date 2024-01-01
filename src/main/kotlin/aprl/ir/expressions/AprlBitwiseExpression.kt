@@ -5,8 +5,8 @@ import aprl.ir.AprlNode
 import aprl.ir.operators.AprlBitwiseOperator
 import aprl.util.ExpressionTree
 
-data class AprlBitwiseExpression(
-    var bitwiseOperator: AprlBitwiseOperator?,
+class AprlBitwiseExpression(
+    private val bitwiseOperator: AprlBitwiseOperator?,
     override val context: BitwiseExpressionContext
 ) : AprlNode<BitwiseExpressionContext> {
     

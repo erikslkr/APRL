@@ -2,7 +2,7 @@ package aprl.ir
 
 import aprl.grammar.AprlParser.FunctionBodyContext
 
-data class AprlFunctionBody(
+class AprlFunctionBody(
     override val context: FunctionBodyContext
 ) : AprlNode<FunctionBodyContext> {
     

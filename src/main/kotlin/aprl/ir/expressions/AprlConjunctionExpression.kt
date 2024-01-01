@@ -5,7 +5,7 @@ import aprl.ir.AprlNode
 import aprl.ir.operators.AprlConjunctionOperator
 import aprl.util.ExpressionTree
 
-data class AprlConjunctionExpression(
+class AprlConjunctionExpression(
     override val context: ConjunctionExpressionContext
 ) : AprlNode<ConjunctionExpressionContext> {
     

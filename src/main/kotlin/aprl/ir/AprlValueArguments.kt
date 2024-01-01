@@ -2,7 +2,7 @@ package aprl.ir
 
 import aprl.grammar.AprlParser.ValueArgumentsContext
 
-data class AprlValueArguments(
+class AprlValueArguments(
     override val context: ValueArgumentsContext
 ) : AprlUnaryPostfix<ValueArgumentsContext> {
     

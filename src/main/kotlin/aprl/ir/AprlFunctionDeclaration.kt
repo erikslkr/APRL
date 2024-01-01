@@ -3,7 +3,7 @@ package aprl.ir
 import aprl.grammar.AprlParser.FunctionDeclarationContext
 import aprl.jvm.JvmMethod
 
-data class AprlFunctionDeclaration(
+class AprlFunctionDeclaration(
     override val context: FunctionDeclarationContext
 ) : AprlGlobalStatement, AprlNode<FunctionDeclarationContext> {
     

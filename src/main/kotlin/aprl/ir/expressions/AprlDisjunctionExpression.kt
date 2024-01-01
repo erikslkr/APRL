@@ -5,7 +5,7 @@ import aprl.ir.AprlNode
 import aprl.ir.operators.AprlDisjunctionOperator
 import aprl.util.ExpressionTree
 
-data class AprlDisjunctionExpression(
+class AprlDisjunctionExpression(
     override val context: DisjunctionExpressionContext
 ) : AprlNode<DisjunctionExpressionContext> {
     

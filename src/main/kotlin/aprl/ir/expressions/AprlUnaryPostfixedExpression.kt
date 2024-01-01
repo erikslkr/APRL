@@ -5,7 +5,7 @@ import aprl.ir.AprlNode
 import aprl.ir.AprlUnaryPostfix
 import aprl.util.ExpressionTree
 
-data class AprlUnaryPostfixedExpression(
+class AprlUnaryPostfixedExpression(
     override val context: UnaryPostfixedExpressionContext
 ) : AprlNode<UnaryPostfixedExpressionContext> {
     

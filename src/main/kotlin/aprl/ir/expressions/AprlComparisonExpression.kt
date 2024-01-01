@@ -5,7 +5,7 @@ import aprl.ir.AprlNode
 import aprl.ir.operators.AprlComparisonOperator
 import aprl.util.ExpressionTree
 
-data class AprlComparisonExpression(
+class AprlComparisonExpression(
     override val context: ComparisonExpressionContext
 ) : AprlNode<ComparisonExpressionContext> {
     

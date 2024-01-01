@@ -5,8 +5,8 @@ import aprl.ir.AprlNode
 import aprl.ir.operators.AprlMultiplicativeOperator
 import aprl.util.ExpressionTree
 
-data class AprlMultiplicativeExpression(
-    var multiplicativeOperator: AprlMultiplicativeOperator?,
+class AprlMultiplicativeExpression(
+    private val multiplicativeOperator: AprlMultiplicativeOperator?,
     override val context: MultiplicativeExpressionContext
 ) : AprlNode<MultiplicativeExpressionContext> {
     

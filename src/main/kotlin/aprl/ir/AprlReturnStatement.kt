@@ -2,7 +2,7 @@ package aprl.ir
 
 import aprl.grammar.AprlParser.ReturnStatementContext
 
-data class AprlReturnStatement(
+class AprlReturnStatement(
     override val context: ReturnStatementContext
 ) : AprlLocalStatement, AprlNode<ReturnStatementContext> {
     

@@ -7,7 +7,7 @@ import aprl.ir.AprlLiteral
 import aprl.ir.AprlNode
 import aprl.util.ExpressionTree
 
-data class AprlAtomicExpression(
+class AprlAtomicExpression(
     override val context: AtomicExpressionContext
 ): AprlNode<AtomicExpressionContext> {
     

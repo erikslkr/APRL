@@ -4,7 +4,7 @@ import aprl.jvm.JvmMethod
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
-data class AprlFile(
+class AprlFile(
     var name: String? = null,
     val globalStatements: MutableList<AprlGlobalStatement> = mutableListOf()
 ) {

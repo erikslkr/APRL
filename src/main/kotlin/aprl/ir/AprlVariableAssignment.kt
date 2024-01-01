@@ -2,7 +2,7 @@ package aprl.ir
 
 import aprl.grammar.AprlParser.VariableAssignmentContext
 
-data class AprlVariableAssignment(
+class AprlVariableAssignment(
     override val context: VariableAssignmentContext
 ) : AprlLocalStatement, AprlNode<VariableAssignmentContext> {
     

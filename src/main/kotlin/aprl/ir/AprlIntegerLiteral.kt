@@ -3,7 +3,7 @@ package aprl.ir
 import aprl.grammar.AprlParser.LiteralContext
 import aprl.lang.Int
 
-data class AprlIntegerLiteral(
+class AprlIntegerLiteral(
     override val value: Long,
     override val context: LiteralContext
 ) : AprlLiteral<Long> {

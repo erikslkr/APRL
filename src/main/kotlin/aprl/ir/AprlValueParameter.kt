@@ -2,7 +2,7 @@ package aprl.ir
 
 import aprl.grammar.AprlParser.ValueParameterContext
 
-data class AprlValueParameter(
+class AprlValueParameter(
     override val context: ValueParameterContext
 ) : AprlNode<ValueParameterContext> {
     
