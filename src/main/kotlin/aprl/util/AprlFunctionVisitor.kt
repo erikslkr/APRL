@@ -197,12 +197,7 @@ class AprlFunctionVisitor(
         val labelLoad1 = Label()
         val labelContinue = Label()
         
-        fun performComparison(
-            comparator: AprlNode<*>?,
-            comparand: ExpressionTree,
-            opcodes: IntArray,
-            jumpLabel: Label
-        ) {
+        fun performComparison(comparator: AprlNode<*>?, comparand: ExpressionTree, opcodes: IntArray, jumpLabel: Label) {
             if (comparator !is AprlComparisonOperator) {
                 throw InternalError("Comparator should be comparison operator, found '$comparator' (${comparator?.javaClass})")
             }
@@ -212,33 +207,8 @@ class AprlFunctionVisitor(
             handleComparand(comparand)
             val lhsType = types.previousToLast()
             val rhsType = types.last()
-            var bestComparatorFunctionMatch: Method? = null
-            var bestEqualsFunctionMatch: Method? = null
-            for (method in lhsType.methods.filter { it.name == "compareTo" }) {
-                // find function that returns Int and matches given rhs type
-                if (Int::class.java.isAprlAssignableFrom(method.returnType)
-                    && method.parameters.size == 1
-                    && method.parameterTypes[0].isAprlAssignableFrom(rhsType)
-                ) {
-                    if (bestComparatorFunctionMatch?.parameterTypes?.get(0)?.isAssignableFrom(method.parameterTypes[0]) != false) {
-                        bestComparatorFunctionMatch = method
-                    }
-                }
-            }
-            for (method in lhsType.methods.filter { it.name == "equals" }) {
-                // find function that returns Boolean and matches given rhs type
-                if (Boolean::class.java.isAprlAssignableFrom(method.returnType)
-                    && method.parameters.size == 1
-                    && method.parameterTypes[0].isAprlAssignableFrom(rhsType)
-                ) {
-                    if (bestEqualsFunctionMatch?.parameterTypes?.get(0)?.isAssignableFrom(method.parameterTypes[0]) != false) {
-                        bestEqualsFunctionMatch = method
-                    }
-                }
-            }
-            if (bestEqualsFunctionMatch == null) {
-                throw InternalError("Every object should have at least one .equals function")
-            }
+            val bestEqualsFunctionMatch = bestEqualsFunction(lhsType, rhsType) ?: throw InternalError("Every object should have at least one .equals function")
+            val bestComparatorFunctionMatch = bestComparatorFunction(lhsType, rhsType)
             if (bestComparatorFunctionMatch == null && !comparator.isIntrinsic) {
                 ERROR("Operation '${comparator.operatorSymbol}' is not defined on types '${lhsType.simpleName}' and '${rhsType.simpleName}'", comparator.context.positionRange)
             } else {
@@ -336,6 +306,70 @@ class AprlFunctionVisitor(
         }
     }
     
+    private fun bestOperatorFunction(leftType: Class<*>, rightType: Class<*>, name: String): Method? {
+        var bestMatch: Method? = null
+        for (method in leftType.methods.filter { it.name == name }) {
+            // find function that matches given rhs type and is annotated with @OperatorFunction
+            if (method.parameters.size == 1 && method.parameterTypes[0].isAssignableFrom(rightType) && OperatorFunction() in method.annotations) {
+                if (bestMatch?.parameterTypes?.get(0)?.isAssignableFrom(method.parameterTypes[0]) != false) {
+                    // current method is better if best match is null or current return type is more precise
+                    bestMatch = method
+                }
+            }
+        }
+        return bestMatch
+    }
+    
+    private fun bestConversionFunction(type: Class<*>, expectedType: Class<*>): Method? {
+        // TODO: revise conversion functions
+        // * better name with underscores
+        // * annotation (@ConversionFunction)
+        val functionName = "to${expectedType.simpleName}"
+        var bestMatch: Method? = null
+        for (method in type.methods.filter { it.name == functionName }) {
+            // find conversion function with no parameters and matching return type
+            if (method.parameters.isEmpty() && expectedType.isAssignableFrom(method.returnType)) {
+                if (bestMatch?.returnType?.isAssignableFrom(method.returnType) != false) {
+                    // current method is better if best match is null or current return type is more precise
+                    bestMatch = method
+                }
+            }
+        }
+        return bestMatch
+    }
+    
+    private fun bestEqualsFunction(leftType: Class<*>, rightType: Class<*>): Method? {
+        var bestEqualsFunctionMatch: Method? = null
+        for (method in leftType.methods.filter { it.name == "equals" }) {
+            // find function that returns Boolean and matches given rhs type
+            if (Boolean::class.java.isAprlAssignableFrom(method.returnType)
+                && method.parameters.size == 1
+                && method.parameterTypes[0].isAprlAssignableFrom(rightType)
+            ) {
+                if (bestEqualsFunctionMatch?.parameterTypes?.get(0)?.isAssignableFrom(method.parameterTypes[0]) != false) {
+                    bestEqualsFunctionMatch = method
+                }
+            }
+        }
+        return bestEqualsFunctionMatch
+    }
+    
+    private fun bestComparatorFunction(leftType: Class<*>, rightType: Class<*>): Method? {
+        var bestComparatorFunctionMatch: Method? = null
+        for (method in leftType.methods.filter { it.name == "compareTo" }) {
+            // find function that returns Int and matches given rhs type
+            if (Int::class.java.isAprlAssignableFrom(method.returnType)
+                && method.parameters.size == 1
+                && method.parameterTypes[0].isAprlAssignableFrom(rightType)
+            ) {
+                if (bestComparatorFunctionMatch?.parameterTypes?.get(0)?.isAssignableFrom(method.parameterTypes[0]) != false) {
+                    bestComparatorFunctionMatch = method
+                }
+            }
+        }
+        return bestComparatorFunctionMatch
+    }
+    
     private fun visitOverloadableBinaryExpression(
         expression: ExpressionTree,
         operatorClass: Class<out AprlOverloadableBinaryOperator<*>>,
@@ -360,34 +394,25 @@ class AprlFunctionVisitor(
             }
             
             if (verbatim) {
-                if (types.last().methods.none { it.name == "__value__" && it.parameterTypes.isEmpty() }) {
-                    WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
+                if (Wrapper::class.java.isAssignableFrom(types.last())) {
+                    verbatimType = unwrap(types.last())
                 } else {
-                    if (Wrapper::class.java.isAssignableFrom(types.last())) {
-                        verbatimType = unwrap(types.last())
-                    } else {
-                        WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
-                    }
+                    NO_VERBATIM()
                 }
             }
             visitOverloadableBinaryExpression(expression.secondChild as ExpressionTree, operatorClass, inferiorExpressionHandler, verbatim)
             if (verbatim && verbatimType != null) {
-                if (types.last().methods.none { it.name == "__value__" && it.parameterTypes.isEmpty() }) {
-                    NO_VERBATIM()
-                } else {
-                    if (Wrapper::class.java.isAssignableFrom(types.last())) {
-                        val primitiveType = unwrap(types.last())
-                        if (primitiveType != verbatimType) {
-                            NO_VERBATIM()
-                        } else {
-                            types.pollLast()
-                            types.pollLast()
-                            types.add(primitiveType)
-                        }
+                if (Wrapper::class.java.isAssignableFrom(types.last())) {
+                    val primitiveType = unwrap(types.last())
+                    if (primitiveType != verbatimType) {
+                        NO_VERBATIM()
                     } else {
-                        WARNING("Verbatim evaluation not possible for expression '$expression'", expression.positionRange)
-                        verbatimType = null
+                        types.pollLast()
+                        types.pollLast()
+                        types.add(primitiveType)
                     }
+                } else {
+                    NO_VERBATIM()
                 }
             }
             val leftType = types.previousToLast() ?: throw InternalError("The compiler was not able to type-check one or multiple expressions")
@@ -491,23 +516,14 @@ class AprlFunctionVisitor(
                 }
             }
             if (!verbatim) {
-                var bestOperatorFunctionMatch: Method? = null
-                for (method in leftType.methods.filter { it.name == operator.functionName }) {
-                    // find function that matches given rhs type and is annotated with #OperatorFunction
-                    if (method.parameters.size == 1 && method.parameterTypes[0].isAssignableFrom(rightType) && OperatorFunction() in method.annotations) {
-                        if (bestOperatorFunctionMatch?.parameterTypes?.get(0)?.isAssignableFrom(method.parameterTypes[0]) != false) {
-                            bestOperatorFunctionMatch = method
-                        }
-                    }
-                }
-                if (bestOperatorFunctionMatch != null) {
-                    val returnType = bestOperatorFunctionMatch.returnType.descriptor
-                    visitMethodInsn(INVOKEVIRTUAL, types.previousToLast().name.replace(".", "/"), operator.functionName, "(${types.lastButNotFirst().descriptor})$returnType", false)
+                val bestOperator: Method? = bestOperatorFunction(leftType, rightType, operator.functionName)
+                if (bestOperator != null) {
+                    visitMethodInsn(INVOKEVIRTUAL, types.previousToLast().name.replace(".", "/"), operator.functionName, "(${types.lastButNotFirst().descriptor})${bestOperator.returnType.descriptor}", false)
                     // remove operand types
                     types.pollLast()
                     types.pollLast()
                     // add return type
-                    types.add(bestOperatorFunctionMatch.returnType)
+                    types.add(bestOperator.returnType)
                 } else {
                     // no operator function found
                     ERROR("Operation '${operator.operatorSymbol}' is not defined on types '${types.previousToLast().simpleName}' and '${types.lastButNotFirst().simpleName}'", operator.context.positionRange)
@@ -915,24 +931,14 @@ class AprlFunctionVisitor(
     }
     
     private fun visitImplicitConversion(expectedType: Class<*>, expressionString: String, expressionPosition: PositionRange) {
-        val conversionFunctionName = "to${expectedType.simpleName}"
-        var bestConversionFunctionMatch: Method? = null
-        for (method in types.last().methods.filter { it.name == conversionFunctionName }) {
-            // find conversion function with no parameters and matching return type
-            if (method.parameters.isEmpty() && expectedType.isAssignableFrom(method.returnType)) {
-                if (bestConversionFunctionMatch?.returnType?.isAssignableFrom(method.returnType) != false) {
-                    // current method is better if best match is null or current return type is more precise
-                    bestConversionFunctionMatch = method
-                }
-            }
-        }
-        if (bestConversionFunctionMatch == null) {
-            ERROR("Expression '$expressionString' (of type '${types.last().simpleName}') cannot be implicitly converted to '${expectedType.simpleName}' (No function '${types.last.simpleName}.$conversionFunctionName() -> ${expectedType.simpleName}')", expressionPosition)
+        val bestConversionFunction = bestConversionFunction(types.last(), expectedType)
+        if (bestConversionFunction == null) {
+            ERROR("Expression '$expressionString' (of type '${types.last().simpleName}') cannot be implicitly converted to '${expectedType.simpleName}'", expressionPosition)
         } else {
-            visitMethodInsn(INVOKEVIRTUAL, types.last().internalName, conversionFunctionName, "()${bestConversionFunctionMatch.returnType.descriptor}", false)
+            visitMethodInsn(INVOKEVIRTUAL, types.last().internalName, bestConversionFunction.name, "()${bestConversionFunction.returnType.descriptor}", false)
             types.pollLast()
-            types.add(bestConversionFunctionMatch.returnType)
-            WARNING("Implicit conversion from '${types.last().simpleName}' to '${bestConversionFunctionMatch.returnType.simpleName}'", expressionPosition)
+            types.add(bestConversionFunction.returnType)
+            WARNING("Implicit conversion from '${types.last().simpleName}' to '${bestConversionFunction.returnType.simpleName}'", expressionPosition)
         }
     }
     
@@ -1029,12 +1035,26 @@ class AprlFunctionVisitor(
             in accessibleLocalVariables.keys -> {
                 val localVariable = accessibleLocalVariables[assignment.identifier]!!
                 if (!localVariable.isMutable) {
-                    // Variable cannot be reassigned
                     ERROR("'${assignment.identifier}' is immutable", assignment.context.simpleIdentifier().positionRange)
                 }
-                visitExpressionOptimization(expressionTree)
-                if (types.firstOrNull()?.let { localVariable.type.isAssignableFrom(it) } != true) {
-                    visitImplicitConversion(localVariable.type, assignment.expression)
+                if (assignment.assignmentOperator == null) {
+                    visitExpressionOptimization(expressionTree)
+                } else {
+                    visitVarInsn(ALOAD, localVariable.index)
+                    visitExpressionOptimization(expressionTree)
+                    val bestOperator = bestOperatorFunction(localVariable.type, types.last(), assignment.assignmentOperator.functionName)
+                    if (bestOperator == null) {
+                        ERROR("Operation '${assignment.assignmentOperator.operatorSymbol}' is not defined on types '${localVariable.type.simpleName}' and '${types.last().simpleName}'", assignment.context.assignmentOperator().positionRange)
+                    } else {
+                        visitMethodInsn(INVOKEVIRTUAL, types.previousToLast().name.replace(".", "/"), assignment.assignmentOperator.functionName, "(${types.lastButNotFirst().descriptor})${bestOperator.returnType.descriptor}", false)
+                        // remove right operand type
+                        types.pollLast()
+                        // push return type
+                        types.add(bestOperator.returnType)
+                    }
+                }
+                if (!localVariable.type.isAssignableFrom(types.last())) {
+                    visitImplicitConversion(localVariable.type, assignment.fullExpressionString(), assignment.context.positionRange)
                 }
                 visitVarInsn(ASTORE, localVariable.index)
             }

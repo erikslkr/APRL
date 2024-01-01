@@ -65,6 +65,12 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitVariableAssignment(AprlParser.VariableAssignmentContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link AprlParser#assignmentOperator}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAssignmentOperator(AprlParser.AssignmentOperatorContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link AprlParser#conditionalStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

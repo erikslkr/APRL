@@ -73,7 +73,8 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
     }
     
     override fun enterVariableAssignment(ctx: VariableAssignmentContext) {
-        currentVariableAssignments.push(AprlVariableAssignment(ctx))
+        val assignmentOperator = AprlOverloadableBinaryOperator.fromAssignmentOperator(ctx.assignmentOperator())
+        currentVariableAssignments.push(AprlVariableAssignment(assignmentOperator, ctx))
     }
     
     override fun enterConditionalStatement(ctx: ConditionalStatementContext) {

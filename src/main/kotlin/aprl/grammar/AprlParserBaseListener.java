@@ -125,6 +125,18 @@ public class AprlParserBaseListener implements AprlParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterAssignmentOperator(AprlParser.AssignmentOperatorContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAssignmentOperator(AprlParser.AssignmentOperatorContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterConditionalStatement(AprlParser.ConditionalStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}

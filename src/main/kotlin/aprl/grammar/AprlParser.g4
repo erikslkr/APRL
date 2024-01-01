@@ -36,7 +36,23 @@ variableClassifier
     : (VAL | VAR);
 
 variableAssignment
-    : simpleIdentifier EQUAL expression;
+    : simpleIdentifier assignmentOperator expression;
+
+assignmentOperator
+    : EQUAL
+    | PLUS_EQUAL
+    | MINUS_EQUAL
+    | ASTERISK_EQUAL
+    | DOUBLE_ASTERISK_EQUAL
+    | SLASH_EQUAL
+    | DOUBLE_SLASH_EQUAL
+    | PERCENT_EQUAL
+    | AND_EQUAL
+    | OR_EQUAL
+    | XOR_EQUAL
+    | SHL_EQUAL
+    | SHR_EQUAL
+    | USHR_EQUAL;
 
 conditionalStatement
     : ifStatement NL* (ELSE ifStatement NL*)* elseStatement*;

@@ -81,6 +81,13 @@ public class AprlParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implem
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitAssignmentOperator(AprlParser.AssignmentOperatorContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitConditionalStatement(AprlParser.ConditionalStatementContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}

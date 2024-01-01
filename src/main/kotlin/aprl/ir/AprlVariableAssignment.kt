@@ -1,8 +1,10 @@
 package aprl.ir
 
 import aprl.grammar.AprlParser.VariableAssignmentContext
+import aprl.ir.operators.AprlOverloadableBinaryOperator
 
 class AprlVariableAssignment(
+    val assignmentOperator: AprlOverloadableBinaryOperator<*>?,
     override val context: VariableAssignmentContext
 ) : AprlLocalStatement, AprlNode<VariableAssignmentContext> {
     
@@ -10,9 +12,13 @@ class AprlVariableAssignment(
     lateinit var expression: AprlExpression
     
     override fun toString(): String {
-        return "$identifier = $expression"
+        return "$identifier $assignmentOperator= $expression"
     }
-
+    
+    fun fullExpressionString(): String {
+        return "$identifier $assignmentOperator $expression"
+    }
+    
     override fun isDefinitiveReturnStatement(): Boolean {
         return false
     }

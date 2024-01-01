@@ -52,22 +52,36 @@ RIGHT_ARROW: '->';
 HASH: '#';
 
 PLUS: '+';
+PLUS_EQUAL: '+=';
 MINUS: '-';
+MINUS_EQUAL: '-=';
 ASTERISK: '*';
+ASTERISK_EQUAL: '*=';
 DOUBLE_ASTERISK: '**';
+DOUBLE_ASTERISK_EQUAL: '**=';
 SLASH: '/';
+SLASH_EQUAL: '/=';
 DOUBLE_SLASH: '//';
-BACKSLASH: '\\';
+DOUBLE_SLASH_EQUAL: '//=';
 PERCENT: '%';
+PERCENT_EQUAL: '%=';
+
+BACKSLASH: '\\';
 
 AND: '&';
+AND_EQUAL: '&=';
 DOUBLE_AND: '&&';
 OR: '|';
+OR_EQUAL: '|=';
 DOUBLE_OR: '||';
 XOR: '^';
+XOR_EQUAL: '^=';
 SHL: '<<';
+SHL_EQUAL: '<<=';
 SHR: '>>';
+SHR_EQUAL: '>>=';
 USHR: '>>>';
+USHR_EQUAL: '>>>=';
 
 TRUE: 'true';
 FALSE: 'false';

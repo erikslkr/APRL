@@ -98,6 +98,16 @@ public interface AprlParserListener extends ParseTreeListener {
 	 */
 	void exitVariableAssignment(AprlParser.VariableAssignmentContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link AprlParser#assignmentOperator}.
+	 * @param ctx the parse tree
+	 */
+	void enterAssignmentOperator(AprlParser.AssignmentOperatorContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#assignmentOperator}.
+	 * @param ctx the parse tree
+	 */
+	void exitAssignmentOperator(AprlParser.AssignmentOperatorContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link AprlParser#conditionalStatement}.
 	 * @param ctx the parse tree
 	 */
