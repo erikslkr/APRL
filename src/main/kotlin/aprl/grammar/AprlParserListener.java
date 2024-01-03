@@ -448,15 +448,25 @@ public interface AprlParserListener extends ParseTreeListener {
 	 */
 	void exitBooleanLiteral(AprlParser.BooleanLiteralContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link AprlParser#type}.
+	 * Enter a parse tree produced by {@link AprlParser#typeReference}.
 	 * @param ctx the parse tree
 	 */
-	void enterType(AprlParser.TypeContext ctx);
+	void enterTypeReference(AprlParser.TypeReferenceContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link AprlParser#type}.
+	 * Exit a parse tree produced by {@link AprlParser#typeReference}.
 	 * @param ctx the parse tree
 	 */
-	void exitType(AprlParser.TypeContext ctx);
+	void exitTypeReference(AprlParser.TypeReferenceContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AprlParser#listTypeReference}.
+	 * @param ctx the parse tree
+	 */
+	void enterListTypeReference(AprlParser.ListTypeReferenceContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AprlParser#listTypeReference}.
+	 * @param ctx the parse tree
+	 */
+	void exitListTypeReference(AprlParser.ListTypeReferenceContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AprlParser#identifier}.
 	 * @param ctx the parse tree

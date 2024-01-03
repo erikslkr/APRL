@@ -5,7 +5,6 @@ import aprl.grammar.*
 import aprl.grammar.AprlParser.*
 import aprl.ir.expressions.*
 import aprl.ir.operators.*
-import org.antlr.v4.gui.Interpreter
 import org.antlr.v4.runtime.*
 import org.antlr.v4.gui.Trees
 import org.antlr.v4.runtime.tree.ParseTreeWalker
@@ -169,7 +168,7 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
         currentAtomicExpressions.push(AprlAtomicExpression(ctx))
     }
     
-    override fun enterType(ctx: TypeContext) {
+    override fun enterTypeReference(ctx: TypeReferenceContext) {
         currentTypeReferences.push(AprlTypeReference(ctx))
     }
     
@@ -448,7 +447,7 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
         }
     }
     
-    override fun exitType(ctx: TypeContext) {
+    override fun exitTypeReference(ctx: TypeReferenceContext) {
         val typeReference = currentTypeReferences.pop()
         when (ctx.parent) {
             is ValueParameterContext -> {
@@ -460,6 +459,9 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
             is VariableDeclarationContext -> {
                 currentVariableDeclarations.peek().typeAnnotation = typeReference
             }
+            is ListTypeReferenceContext -> {
+                currentTypeReferences.peek().listTypeReference = typeReference
+            }
         }
     }
     
@@ -469,7 +471,7 @@ class AprlIRCompiler(private val settings: AprlCompilerSettings) : AprlParserBas
             is AtomicExpressionContext -> {
                 currentAtomicExpressions.peek().identifier = identifier
             }
-            is TypeContext -> {
+            is TypeReferenceContext -> {
                 currentTypeReferences.peek().identifier = identifier
             }
         }

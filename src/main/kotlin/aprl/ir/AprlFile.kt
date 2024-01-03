@@ -1,6 +1,6 @@
 package aprl.ir
 
-import aprl.jvm.JvmMethod
+import aprl.reflect.JvmMethod
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 

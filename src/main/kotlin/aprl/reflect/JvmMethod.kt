@@ -1,20 +1,25 @@
-package aprl.jvm
+package aprl.reflect
 
-import org.objectweb.asm.Type
+import aprl.util.descriptor
+import aprl.util.simpleName
+import java.lang.reflect.GenericArrayType
 import java.lang.reflect.Method
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
+import java.lang.reflect.TypeVariable
+import java.lang.reflect.WildcardType
+import org.objectweb.asm.Type as AsmType
 
 data class JvmMethod(
     val name: String,
     val ownerInternalName: String,
-    val parameterTypes: List<Class<*>>,
+    val parameterTypes: List<Type>,
     val parameterNames: List<String>,
-    val returnType: Class<*>
+    val returnType: Type
 ) {
     
     val descriptor: String
         get() {
-            val returnType = Type.getType(returnType)
-            val parameterTypes = parameterTypes.map { Type.getType(it) }
             return "(${parameterTypes.joinToString("") { it.descriptor }})${returnType.descriptor}"
         }
     
@@ -27,7 +32,7 @@ data class JvmMethod(
         fun fromMethod(method: Method): JvmMethod {
             return JvmMethod(
                 method.name,
-                Type.getType(method.declaringClass).internalName,
+                AsmType.getType(method.declaringClass).internalName,
                 method.parameterTypes.asList(),
                 method.parameters.map { it.name },
                 method.returnType

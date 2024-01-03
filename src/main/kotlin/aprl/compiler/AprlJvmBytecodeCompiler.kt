@@ -3,6 +3,7 @@ package aprl.compiler
 import aprl.grammar.AprlParser.VisibilityModifierContext
 import aprl.ir.*
 import aprl.util.AprlFunctionVisitor
+import aprl.util.descriptor
 import aprl.util.duplicates
 import aprl.util.positionRange
 import org.objectweb.asm.ClassWriter
@@ -26,10 +27,9 @@ class AprlJvmBytecodeCompiler(private val settings: AprlCompilerSettings) {
         )
         for (functionDeclaration in ir.globalStatements.filterIsInstance<AprlFunctionDeclaration>()) {
             val argumentsDescriptor = functionDeclaration.valueParameters.joinToString("") {
-                Type.getType(it.type.javaType).descriptor
+                it.type.getJavaType().descriptor
             }
-            val returnTypeDescriptor = functionDeclaration.returnType?.let { Type.getType(it.javaType).descriptor } ?: "V"
-            // TODO: compile modifiers
+            val returnTypeDescriptor = functionDeclaration.returnType?.getJavaType()?.descriptor ?: "V"
             val function = classWriter.visitMethod(
                 visitModifiers(functionDeclaration.modifiers, AprlModifier.ModifierTarget.FUNCTION) + ACC_STATIC + ACC_FINAL,
                 functionDeclaration.name,

@@ -1,7 +1,7 @@
 package aprl.ir
 
 import aprl.grammar.AprlParser.FunctionDeclarationContext
-import aprl.jvm.JvmMethod
+import aprl.reflect.JvmMethod
 
 class AprlFunctionDeclaration(
     override val context: FunctionDeclarationContext
@@ -20,9 +20,9 @@ class AprlFunctionDeclaration(
     }
     
     fun asJvmMethod(ownerInternalName: String): JvmMethod {
-        val parameterTypes = valueParameters.map { it.type.javaType }
+        val parameterTypes = valueParameters.map { it.type.getJavaType() }
         val parameterNames = valueParameters.map { it.name }
-        val returnType = returnType?.javaType ?: Void::class.java
+        val returnType = returnType?.getJavaType() ?: Void::class.java
         return JvmMethod(name, ownerInternalName, parameterTypes, parameterNames, returnType)
     }
     

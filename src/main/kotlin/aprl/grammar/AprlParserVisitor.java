@@ -275,11 +275,17 @@ public interface AprlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitBooleanLiteral(AprlParser.BooleanLiteralContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AprlParser#type}.
+	 * Visit a parse tree produced by {@link AprlParser#typeReference}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitType(AprlParser.TypeContext ctx);
+	T visitTypeReference(AprlParser.TypeReferenceContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AprlParser#listTypeReference}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitListTypeReference(AprlParser.ListTypeReferenceContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AprlParser#identifier}.
 	 * @param ctx the parse tree

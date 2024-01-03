@@ -5,7 +5,7 @@ import aprl.compiler.WARNING
 import aprl.grammar.AprlParser.UnaryPostfixedExpressionContext
 import aprl.ir.*
 import aprl.ir.operators.*
-import aprl.jvm.JvmMethod
+import aprl.reflect.JvmMethod
 import aprl.lang.OperatorFunction
 import aprl.lang.Wrapper
 import aprl.lang.Boolean as AprlBoolean
@@ -13,9 +13,10 @@ import aprl.lang.Int as AprlInt
 import aprl.lang.Float as AprlFloat
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.Type as AsmType
 import org.objectweb.asm.Opcodes.*
-import org.objectweb.asm.Type
 import java.lang.reflect.Method
+import java.lang.reflect.Type
 import java.util.ArrayDeque
 import java.util.Comparator
 import kotlin.math.max
@@ -26,9 +27,9 @@ class AprlFunctionVisitor(
     private val ownerFile: AprlFile
 ) : MethodVisitor(ASM9, mv) {
     
-    private lateinit var returnType: Class<*>
+    private lateinit var returnType: Type
     
-    private val types = ArrayDeque<Class<*>>()
+    private val types = ArrayDeque<Type>()
     
     private val functionReferencesCandidates = ArrayDeque<List<JvmMethod>>()
     
@@ -94,8 +95,8 @@ class AprlFunctionVisitor(
     ) {
         val handleOperand = { operand: ExpressionTree ->
             inferiorExpressionHandler(operand)
-            if (!Boolean::class.java.isAssignableFrom(types.last())) {
-                if (!AprlBoolean::class.java.isAssignableFrom(types.last())) {
+            if (!Boolean::class.java.isJvmAssignableFrom(types.last())) {
+                if (!AprlBoolean::class.java.isJvmAssignableFrom(types.last())) {
                     // implicit conversion to boolean if necessary
                     visitImplicitConversion<AprlBoolean>(operand)
                 }
@@ -214,7 +215,7 @@ class AprlFunctionVisitor(
             } else {
                 val invokeCompareTo = bestComparatorFunctionMatch?.let {{
                     wrapOrUnwrap(rhsType, bestComparatorFunctionMatch.parameterTypes[0])
-                    val functionSignature = Type.getType(bestComparatorFunctionMatch).descriptor
+                    val functionSignature = AsmType.getType(bestComparatorFunctionMatch).descriptor
                     visitMethodInsn(
                         INVOKEVIRTUAL,
                         bestComparatorFunctionMatch.declaringClass.internalName,
@@ -222,7 +223,7 @@ class AprlFunctionVisitor(
                         functionSignature,
                         lhsType.isInterface
                     )
-                    if (!Int::class.java.isAssignableFrom(bestComparatorFunctionMatch.returnType)) {
+                    if (!Int::class.java.isJvmAssignableFrom(bestComparatorFunctionMatch.returnType)) {
                         visitMethodInsn(
                             INVOKEVIRTUAL,
                             "aprl/lang/Int",
@@ -235,7 +236,7 @@ class AprlFunctionVisitor(
                 }}
                 val invokeEquals = {
                     wrapOrUnwrap(rhsType, bestEqualsFunctionMatch.parameterTypes[0])
-                    val functionSignature = Type.getType(bestEqualsFunctionMatch).descriptor
+                    val functionSignature = AsmType.getType(bestEqualsFunctionMatch).descriptor
                     visitMethodInsn(
                         INVOKEVIRTUAL,
                         bestEqualsFunctionMatch.declaringClass.internalName,
@@ -243,7 +244,7 @@ class AprlFunctionVisitor(
                         functionSignature,
                         false
                     )
-                    if (!Boolean::class.java.isAssignableFrom(bestEqualsFunctionMatch.returnType)) {
+                    if (!Boolean::class.java.isJvmAssignableFrom(bestEqualsFunctionMatch.returnType)) {
                         unwrap<AprlBoolean>()
                     }
                 }
@@ -306,12 +307,12 @@ class AprlFunctionVisitor(
         }
     }
     
-    private fun bestOperatorFunction(leftType: Class<*>, rightType: Class<*>, name: String): Method? {
+    private fun bestOperatorFunction(leftType: Type, rightType: Type, name: String): Method? {
         var bestMatch: Method? = null
-        for (method in leftType.methods.filter { it.name == name }) {
+        for (method in leftType.getMethods().filter { it.name == name }) {
             // find function that matches given rhs type and is annotated with @OperatorFunction
-            if (method.parameters.size == 1 && method.parameterTypes[0].isAssignableFrom(rightType) && OperatorFunction() in method.annotations) {
-                if (bestMatch?.parameterTypes?.get(0)?.isAssignableFrom(method.parameterTypes[0]) != false) {
+            if (method.parameters.size == 1 && method.parameterTypes[0].isJvmAssignableFrom(rightType) && OperatorFunction() in method.annotations) {
+                if (bestMatch?.parameterTypes?.get(0)?.isJvmAssignableFrom(method.parameterTypes[0]) != false) {
                     // current method is better if best match is null or current return type is more precise
                     bestMatch = method
                 }
@@ -320,16 +321,16 @@ class AprlFunctionVisitor(
         return bestMatch
     }
     
-    private fun bestConversionFunction(type: Class<*>, expectedType: Class<*>): Method? {
+    private fun bestConversionFunction(type: Type, expectedType: Type): Method? {
         // TODO: revise conversion functions
         // * better name with underscores
         // * annotation (@ConversionFunction)
         val functionName = "to${expectedType.simpleName}"
         var bestMatch: Method? = null
-        for (method in type.methods.filter { it.name == functionName }) {
+        for (method in type.getMethods().filter { it.name == functionName }) {
             // find conversion function with no parameters and matching return type
-            if (method.parameters.isEmpty() && expectedType.isAssignableFrom(method.returnType)) {
-                if (bestMatch?.returnType?.isAssignableFrom(method.returnType) != false) {
+            if (method.parameters.isEmpty() && expectedType.isJvmAssignableFrom(method.returnType)) {
+                if (bestMatch?.returnType?.isJvmAssignableFrom(method.returnType) != false) {
                     // current method is better if best match is null or current return type is more precise
                     bestMatch = method
                 }
@@ -338,15 +339,15 @@ class AprlFunctionVisitor(
         return bestMatch
     }
     
-    private fun bestEqualsFunction(leftType: Class<*>, rightType: Class<*>): Method? {
+    private fun bestEqualsFunction(leftType: Type, rightType: Type): Method? {
         var bestEqualsFunctionMatch: Method? = null
-        for (method in leftType.methods.filter { it.name == "equals" }) {
+        for (method in leftType.getMethods().filter { it.name == "equals" }) {
             // find function that returns Boolean and matches given rhs type
             if (Boolean::class.java.isAprlAssignableFrom(method.returnType)
                 && method.parameters.size == 1
                 && method.parameterTypes[0].isAprlAssignableFrom(rightType)
             ) {
-                if (bestEqualsFunctionMatch?.parameterTypes?.get(0)?.isAssignableFrom(method.parameterTypes[0]) != false) {
+                if (bestEqualsFunctionMatch?.parameterTypes?.get(0)?.isJvmAssignableFrom(method.parameterTypes[0]) != false) {
                     bestEqualsFunctionMatch = method
                 }
             }
@@ -354,15 +355,15 @@ class AprlFunctionVisitor(
         return bestEqualsFunctionMatch
     }
     
-    private fun bestComparatorFunction(leftType: Class<*>, rightType: Class<*>): Method? {
+    private fun bestComparatorFunction(leftType: Type, rightType: Type): Method? {
         var bestComparatorFunctionMatch: Method? = null
-        for (method in leftType.methods.filter { it.name == "compareTo" }) {
+        for (method in leftType.getMethods().filter { it.name == "compareTo" }) {
             // find function that returns Int and matches given rhs type
             if (Int::class.java.isAprlAssignableFrom(method.returnType)
                 && method.parameters.size == 1
                 && method.parameterTypes[0].isAprlAssignableFrom(rightType)
             ) {
-                if (bestComparatorFunctionMatch?.parameterTypes?.get(0)?.isAssignableFrom(method.parameterTypes[0]) != false) {
+                if (bestComparatorFunctionMatch?.parameterTypes?.get(0)?.isJvmAssignableFrom(method.parameterTypes[0]) != false) {
                     bestComparatorFunctionMatch = method
                 }
             }
@@ -377,7 +378,7 @@ class AprlFunctionVisitor(
         verbatim: Boolean
     ) {
         val operator = (expression.content as? AprlOverloadableBinaryOperator) ?: return inferiorExpressionHandler(expression)
-        if (!operatorClass.isAssignableFrom(operator.javaClass)) {
+        if (!operatorClass.isJvmAssignableFrom(operator.javaClass)) {
             return inferiorExpressionHandler(expression)
         }
         if (expression.firstChild == null || expression.secondChild == null) {
@@ -385,7 +386,7 @@ class AprlFunctionVisitor(
             (expression.secondChild as? ExpressionTree)?.also { visitOverloadableBinaryExpression(it, operatorClass, inferiorExpressionHandler, verbatim) }
         } else {
             visitOverloadableBinaryExpression(expression.firstChild as ExpressionTree, operatorClass, inferiorExpressionHandler, verbatim)
-            var verbatimType: Class<*>? = null
+            var verbatimType: Type? = null
             
             @Suppress("FunctionName")
             fun NO_VERBATIM() {
@@ -394,7 +395,7 @@ class AprlFunctionVisitor(
             }
             
             if (verbatim) {
-                if (Wrapper::class.java.isAssignableFrom(types.last())) {
+                if (Wrapper::class.java.isJvmAssignableFrom(types.last())) {
                     verbatimType = unwrap(types.last())
                 } else {
                     NO_VERBATIM()
@@ -402,7 +403,7 @@ class AprlFunctionVisitor(
             }
             visitOverloadableBinaryExpression(expression.secondChild as ExpressionTree, operatorClass, inferiorExpressionHandler, verbatim)
             if (verbatim && verbatimType != null) {
-                if (Wrapper::class.java.isAssignableFrom(types.last())) {
+                if (Wrapper::class.java.isJvmAssignableFrom(types.last())) {
                     val primitiveType = unwrap(types.last())
                     if (primitiveType != verbatimType) {
                         NO_VERBATIM()
@@ -518,7 +519,7 @@ class AprlFunctionVisitor(
             if (!verbatim) {
                 val bestOperator: Method? = bestOperatorFunction(leftType, rightType, operator.functionName)
                 if (bestOperator != null) {
-                    visitMethodInsn(INVOKEVIRTUAL, types.previousToLast().name.replace(".", "/"), operator.functionName, "(${types.lastButNotFirst().descriptor})${bestOperator.returnType.descriptor}", false)
+                    visitMethodInsn(INVOKEVIRTUAL, types.previousToLast().internalName, operator.functionName, "(${types.lastButNotFirst().descriptor})${bestOperator.returnType.descriptor}", false)
                     // remove operand types
                     types.pollLast()
                     types.pollLast()
@@ -643,7 +644,7 @@ class AprlFunctionVisitor(
             }
         }
         val operator = expressionTree.content as? AprlUnaryPrefixOperator ?: return
-        val operatorFunction = types.last().methods.singleOrNull { it.name == operator.functionName && it.parameterTypes.isEmpty() }
+        val operatorFunction = types.last().getMethods().singleOrNull { it.name == operator.functionName && it.parameterTypes.isEmpty() }
         if (operatorFunction != null) {
             val returnType = operatorFunction.returnType.descriptor
             visitMethodInsn(INVOKEVIRTUAL, types.last().internalName, operator.functionName, "()$returnType", false)
@@ -747,7 +748,7 @@ class AprlFunctionVisitor(
                             val providedType = types.elementAt(types.size - argsCount + i)
                             val jvmProvidedType = providedType.aprlToJvmType()
                             
-                            if (!(expectedType.isAssignableFrom(jvmProvidedType) || expectedType.isAssignableFrom(providedType))) {
+                            if (!(expectedType.isJvmAssignableFrom(jvmProvidedType) || expectedType.isJvmAssignableFrom(providedType))) {
                                 mismatchedTypeErrors.add {
                                     ERROR("Type mismatch: Parameter '${function.parameterNames[i]}' expects '${aprlExpectedType.simpleName}', got '${providedType.simpleName}'", postfix.valueArguments[i].context.positionRange)
                                 }
@@ -857,7 +858,7 @@ class AprlFunctionVisitor(
                     types.add(localVariable.type)
                 } else if (argument != null) {
                     visitVarInsn(ALOAD, arguments.indexOf(argument))
-                    types.add(argument.type.javaType)
+                    types.add(argument.type.getJavaType())
                 } else if ((content.context.parent.parent as UnaryPostfixedExpressionContext).unaryPostfix()?.valueArguments() != null) {
                     // TODO (LATER): identifier could refer to instance functions instead of just static ones
                     val functionCandidates = ownerFile.findStaticFunctions(content)
@@ -881,8 +882,8 @@ class AprlFunctionVisitor(
         // TODO: consider case that a JVM type is expected, but APRL type is passed
     }
     
-    private fun wrap(wrapperType: Class<*>) {
-        val wrappedType = wrapperType.aprlToPrimitiveType() ?: throw InternalError("'$wrapperType' is not a proper wrapper")
+    private fun wrap(wrapperType: Type) {
+        val wrappedType = wrapperType.aprlToPrimitiveTypeOrNull() ?: throw InternalError("'$wrapperType' is not a proper wrapper")
         val representedTypeDescriptor = wrappedType.primitiveDescriptorOrNull() ?: wrappedType.descriptor
         val funcDescriptor = "($representedTypeDescriptor)${wrapperType.descriptor}"
         visitMethodInsn(INVOKESTATIC, wrapperType.internalName, "valueOf", funcDescriptor, false)
@@ -893,7 +894,7 @@ class AprlFunctionVisitor(
         wrap(T::class.java)
     }
     
-    private fun <T: Any> wrap(value: T?, wrapperType: Class<out T>) {
+    private fun <T: Any> wrap(value: T?, wrapperType: Type) {
         if (value != null) {
             visitLdcInsn(value)
         } else {
@@ -904,8 +905,8 @@ class AprlFunctionVisitor(
         types.add(wrapperType)
     }
     
-    private fun unwrap(wrapperType: Class<*>): Class<*> {
-        val primitiveType = wrapperType.aprlToPrimitiveType() ?: throw InternalError("'$wrapperType' is not a proper wrapper")
+    private fun unwrap(wrapperType: Type): Type {
+        val primitiveType = wrapperType.aprlToPrimitiveTypeOrNull() ?: throw InternalError("'$wrapperType' is not a proper wrapper")
         visitMethodInsn(
             INVOKEVIRTUAL,
             wrapperType.internalName,
@@ -920,17 +921,17 @@ class AprlFunctionVisitor(
         unwrap(T::class.java)
     }
     
-    private fun wrapOrUnwrap(from: Class<*>, to: Class<*>) {
-        if (to.isAprlAssignableFrom(from) && !to.isAssignableFrom(from)) {
-            if (Wrapper::class.java.isAssignableFrom(from)) {
+    private fun wrapOrUnwrap(from: Type, to: Type) {
+        if (to.isJvmAssignableFrom(from) && !to.isJvmAssignableFrom(from)) {
+            if (Wrapper::class.java.isJvmAssignableFrom(from)) {
                 unwrap(from)
-            } else if (Wrapper::class.java.isAssignableFrom(to)) {
+            } else if (Wrapper::class.java.isJvmAssignableFrom(to)) {
                 wrap(to)
             }
         }
     }
     
-    private fun visitImplicitConversion(expectedType: Class<*>, expressionString: String, expressionPosition: PositionRange) {
+    private fun visitImplicitConversion(expectedType: Type, expressionString: String, expressionPosition: PositionRange) {
         val bestConversionFunction = bestConversionFunction(types.last(), expectedType)
         if (bestConversionFunction == null) {
             ERROR("Expression '$expressionString' (of type '${types.last().simpleName}') cannot be implicitly converted to '${expectedType.simpleName}'", expressionPosition)
@@ -942,7 +943,7 @@ class AprlFunctionVisitor(
         }
     }
     
-    private fun visitImplicitConversion(expectedType: Class<*>, expression: ExpressionTree) {
+    private fun visitImplicitConversion(expectedType: Type, expression: ExpressionTree) {
         visitImplicitConversion(expectedType, expression.toString(), expression.positionRange)
     }
     
@@ -950,7 +951,7 @@ class AprlFunctionVisitor(
         visitImplicitConversion(T::class.java, expression.toString(), expression.positionRange)
     }
     
-    private fun visitImplicitConversion(expectedType: Class<*>, expression: AprlNode<*>) {
+    private fun visitImplicitConversion(expectedType: Type, expression: AprlNode<*>) {
         visitImplicitConversion(expectedType, expression.toString(), expression.context.positionRange)
     }
     
@@ -962,32 +963,32 @@ class AprlFunctionVisitor(
         withRawTypes {
             visitExpressionOptimization(expression.toTree())
         }
-        if (AprlBoolean::class.java.isAssignableFrom(types.last())) {
+        if (AprlBoolean::class.java.isJvmAssignableFrom(types.last())) {
             unwrap<AprlBoolean>()
-        } else if (!Boolean::class.java.isAssignableFrom(types.last())) {
+        } else if (!Boolean::class.java.isJvmAssignableFrom(types.last())) {
             visitImplicitConversion<AprlBoolean>(expression)
             unwrap<AprlBoolean>()
         }
     }
     
-    private fun visitExpressionOptimization(expressionTree: ExpressionTree, implicitConversion: Class<*>? = null) {
+    private fun visitExpressionOptimization(expressionTree: ExpressionTree, implicitConversion: Type? = null) {
         val beforeOptimization = expressionTree.deepCopy()
         expressionTree.optimize()
         if (expressionTree.childCount != beforeOptimization.childCount && "$expressionTree" != "$beforeOptimization") {
             WARNING("Expression '$beforeOptimization' can be evaluated to '$expressionTree'", beforeOptimization.positionRange)
         }
         visitExpression(expressionTree)
-        if (implicitConversion != null && !implicitConversion.isAssignableFrom(types.last())) {
+        if (implicitConversion != null && !implicitConversion.isJvmAssignableFrom(types.last())) {
             visitImplicitConversion(implicitConversion, beforeOptimization)
         }
     }
     
-    private fun visitExpressionOrDefaultValue(expression: AprlExpression?, type: Class<*>) {
+    private fun visitExpressionOrDefaultValue(expression: AprlExpression?, type: Type) {
         val expressionTree = expression?.toTree()
         if (expressionTree != null) {
             visitExpressionOptimization(expressionTree)
         } else {
-            if (Wrapper::class.java.isAssignableFrom(type)) {
+            if (Wrapper::class.java.isJvmAssignableFrom(type)) {
                 wrap(type.defaultValue, type)
             } else {
                 visitInsn(ACONST_NULL)
@@ -996,7 +997,7 @@ class AprlFunctionVisitor(
     }
     
     private fun visitVariableDeclaration(declaration: AprlVariableDeclaration) {
-        var variableType = declaration.typeAnnotation?.javaType
+        var variableType = declaration.typeAnnotation?.getJavaType()
         visitExpressionOrDefaultValue(declaration.expression, variableType ?: Any::class.java)
         variableType = variableType ?: types.lastOrNull() ?: return
         val index: Int
@@ -1020,9 +1021,11 @@ class AprlFunctionVisitor(
             val isMutable = declaration.variableClassifier != VariableClassifier.VAL
             currentLocalScope.localVariables[declaration.identifier] = LocalVariable(index, isMutable, variableType, declaration.expression != null, declaration)
         }
-        if (!variableType.isAssignableFrom(types.lastOrNull() ?: variableType)) {
+        if (!variableType.isJvmAssignableFrom(types.lastOrNull() ?: variableType)) {
             // no direct assignment possible => conversion required
             visitImplicitConversion(variableType, declaration.expression!!)
+            // TODO: variable is APRL type; expression is primitive/JVM type
+            // TODO: variable is primitive/JVM type; expression is APRL type
         }
         visitVarInsn(ASTORE, index)
     }
@@ -1046,14 +1049,16 @@ class AprlFunctionVisitor(
                     if (bestOperator == null) {
                         ERROR("Operation '${assignment.assignmentOperator.operatorSymbol}' is not defined on types '${localVariable.type.simpleName}' and '${types.last().simpleName}'", assignment.context.assignmentOperator().positionRange)
                     } else {
-                        visitMethodInsn(INVOKEVIRTUAL, types.previousToLast().name.replace(".", "/"), assignment.assignmentOperator.functionName, "(${types.lastButNotFirst().descriptor})${bestOperator.returnType.descriptor}", false)
+                        visitMethodInsn(INVOKEVIRTUAL, types.previousToLast().internalName, assignment.assignmentOperator.functionName, "(${types.lastButNotFirst().descriptor})${bestOperator.returnType.descriptor}", false)
                         // remove right operand type
                         types.pollLast()
                         // push return type
                         types.add(bestOperator.returnType)
                     }
                 }
-                if (!localVariable.type.isAssignableFrom(types.last())) {
+                // TODO: variable is APRL type; expression is primitive/JVM type
+                // TODO: variable is primitive/JVM type; expression is APRL type
+                if (!localVariable.type.isJvmAssignableFrom(types.last())) {
                     visitImplicitConversion(localVariable.type, assignment.fullExpressionString(), assignment.context.positionRange)
                 }
                 visitVarInsn(ASTORE, localVariable.index)
@@ -1182,7 +1187,7 @@ class AprlFunctionVisitor(
     }
     
     private fun visitReturnType(returnType: AprlTypeReference?) {
-        this.returnType = returnType?.javaType ?: Void::class.java
+        this.returnType = returnType?.getJavaType() ?: Void::class.java
     }
     
     fun visitFunctionDeclaration(functionDeclaration: AprlFunctionDeclaration) {

@@ -29,7 +29,7 @@ visibilityModifier
     | PUBLIC;
 
 variableDeclaration
-    : variableClassifier simpleIdentifier COLON type (EQUAL expression)?
+    : variableClassifier simpleIdentifier COLON typeReference (EQUAL expression)?
     | variableClassifier simpleIdentifier EQUAL expression;
 
 variableClassifier
@@ -70,13 +70,13 @@ returnStatement
     : RETURN expression?;
 
 functionDeclaration
-    : modifier* FUNCTION simpleIdentifier valueParameters (RIGHT_ARROW type)? functionBody?;
+    : modifier* FUNCTION simpleIdentifier valueParameters (RIGHT_ARROW typeReference)? functionBody?;
 
 valueParameters
     : LPAREN valueParameter? (COMMA valueParameter)* RPAREN;
 
 valueParameter
-    : simpleIdentifier COLON type;
+    : simpleIdentifier COLON typeReference;
 
 functionBody
     : LCURLY localStatements RCURLY;
@@ -189,8 +189,12 @@ booleanLiteral
     : TRUE
     | FALSE;
 
-type
-    : identifier;
+typeReference
+    : identifier
+    | listTypeReference;
+
+listTypeReference
+    : LSQUARE typeReference RSQUARE;
 
 identifier
     : simpleIdentifier (NL* PERIOD NL* simpleIdentifier)*;

@@ -545,13 +545,25 @@ public class AprlParserBaseListener implements AprlParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterType(AprlParser.TypeContext ctx) { }
+	@Override public void enterTypeReference(AprlParser.TypeReferenceContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitType(AprlParser.TypeContext ctx) { }
+	@Override public void exitTypeReference(AprlParser.TypeReferenceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterListTypeReference(AprlParser.ListTypeReferenceContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitListTypeReference(AprlParser.ListTypeReferenceContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
